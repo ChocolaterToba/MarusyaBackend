@@ -40,8 +40,13 @@ func (handler *BasicHandler) HandleBasicRequest(w http.ResponseWriter, r *http.R
 	output.Session = input.Session
 	output.Version = input.Version
 
+	// logic starts here
+
 	output.Response.Text = input.Command
 	output.Response.EndSession = true
+	output.Session.User.UserID = "123456"
+
+	// logic ends here
 
 	responseBody, err := json.Marshal(output)
 	if err != nil {
