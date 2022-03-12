@@ -44,7 +44,6 @@ func (handler *BasicHandler) HandleBasicRequest(w http.ResponseWriter, r *http.R
 
 	output.Response.Text = input.Command
 	output.Response.EndSession = true
-	output.Session.UserID = "123456"
 
 	// logic ends here
 
