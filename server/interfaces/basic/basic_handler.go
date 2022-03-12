@@ -1,27 +1,25 @@
 package basic
 
 import (
-	"cmkids/models/marusia"
 	"encoding/json"
 	"net/http"
+
+	"cmkids/application/basic"
+	"cmkids/models/marusia"
 
 	"go.uber.org/zap"
 )
 
 // BasicHandler keep information about apps and cookies needed for basic package
 type BasicHandler struct {
-	// userApp         application.UserAppInterface
-	// authApp         application.AuthAppInterface
-	// cookieApp       application.CookieAppInterface
-	// followApp       application.FollowAppInterface
-	// s3App           application.S3AppInterface
-	// notificationApp application.NotificationAppInterface
-	logger *zap.Logger
+	basicApp basic.BasicAppInterface
+	logger   *zap.Logger
 }
 
-func NewBasicHandler(logger *zap.Logger) *BasicHandler {
+func NewBasicHandler(basicApp basic.BasicAppInterface, logger *zap.Logger) *BasicHandler {
 	return &BasicHandler{
-		logger: logger,
+		basicApp: basicApp,
+		logger:   logger,
 	}
 }
 
@@ -42,8 +40,7 @@ func (handler *BasicHandler) HandleBasicRequest(w http.ResponseWriter, r *http.R
 
 	// logic starts here
 
-	output.Response.Text = input.Command
-	output.Response.EndSession = true
+	output.Response = handler.basicApp.ProcessBasicRequest(input.Request, input.MessageID)
 
 	// logic ends here
 
