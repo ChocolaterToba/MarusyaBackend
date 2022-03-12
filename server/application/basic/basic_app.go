@@ -4,6 +4,7 @@ import (
 	"cmkids/models/marusia"
 	"cmkids/models/quiz"
 	"fmt"
+	"strings"
 )
 
 type BasicApp struct {
@@ -48,12 +49,12 @@ func (app *BasicApp) GetBasicTest(request marusia.Request) (response marusia.Res
 
 func (app *BasicApp) RespondToBasicAnswer(request marusia.Request) (response marusia.Response) {
 	response = marusia.Response{EndSession: true}
-	switch request.Command {
-	case quiz.BASIC_TEST_YES:
+	switch strings.ToLower(request.Command) {
+	case strings.ToLower(quiz.BASIC_TEST_YES):
 		response.Text = quiz.BASIC_ANSWER_YES
-	case quiz.BASIC_TEST_NO:
+	case strings.ToLower(quiz.BASIC_TEST_NO):
 		response.Text = quiz.BASIC_ANSWER_NO
-	case quiz.BASIC_TEST_MEXICO:
+	case strings.ToLower(quiz.BASIC_TEST_MEXICO):
 		response.Text = quiz.BASIC_ANSWER_MEXICO
 	default:
 		response.Text = fmt.Sprintf("Ошибочная команда: %s", request.Command)
