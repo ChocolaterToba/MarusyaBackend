@@ -2,6 +2,7 @@ package marusia
 
 type Session struct {
 	SessionID   string      `json:"session_id"`
+	UserID      string      `json:"user_id"`
 	SkillID     string      `json:"skill_id"`
 	New         bool        `json:"new"`
 	MessageID   int         `json:"message_id"`
