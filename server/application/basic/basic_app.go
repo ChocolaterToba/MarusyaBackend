@@ -3,6 +3,7 @@ package basic
 import (
 	"cmkids/models/marusia"
 	"cmkids/models/quiz"
+	"fmt"
 )
 
 type BasicApp struct {
@@ -54,6 +55,8 @@ func (app *BasicApp) RespondToBasicAnswer(request marusia.Request) (response mar
 		response.Text = quiz.BASIC_ANSWER_NO
 	case quiz.BASIC_TEST_MEXICO:
 		response.Text = quiz.BASIC_ANSWER_MEXICO
+	default:
+		response.Text = fmt.Sprintf("Ошибочная команда: %s", request.Command)
 	}
 	return response
 }
