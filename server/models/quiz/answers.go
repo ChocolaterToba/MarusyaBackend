@@ -1,7 +1,7 @@
 package quiz
 
 const (
-	BASIC_TEST_YES    = "Возьмешь её"
+	BASIC_TEST_YES    = "Возьмешь ее"
 	BASIC_TEST_NO     = "Убежишь и позовешь родителей"
 	BASIC_TEST_MEXICO = "Перейдешь границу с Мексикой"
 
