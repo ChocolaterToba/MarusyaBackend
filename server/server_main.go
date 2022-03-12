@@ -55,7 +55,7 @@ func runServer(addr string) {
 	basicHandler := basic.NewBasicHandler(logger)
 
 	os.Setenv("CSRF_ON", "false")
-	os.Setenv("HTTPS_ON", "true")
+	os.Setenv("HTTPS_ON", "false")
 
 	r := routing.CreateRouter(basicHandler, os.Getenv("CSRF_ON") == "true", os.Getenv("HTTPS_ON") == "true")
 
