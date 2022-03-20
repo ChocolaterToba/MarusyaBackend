@@ -4,19 +4,26 @@ import (
 	"encoding/json"
 	"net/http"
 
-	"cmkids/application/basic"
 	"cmkids/models/marusia"
 
 	"go.uber.org/zap"
 )
 
+type BasicAppInterface interface {
+	Activate(userID string) (response marusia.Response)
+	InitIfUserNew(userID string, name string) (response marusia.Response)
+	ProcessBasicRequest(request marusia.Request, messageID int) (response marusia.Response)
+	GetBasicTest(request marusia.Request) (response marusia.Response)
+	RespondToBasicAnswer(request marusia.Request) (response marusia.Response)
+}
+
 // BasicHandler keep information about apps and cookies needed for basic package
 type BasicHandler struct {
-	basicApp basic.BasicAppInterface
+	basicApp BasicAppInterface
 	logger   *zap.Logger
 }
 
-func NewBasicHandler(basicApp basic.BasicAppInterface, logger *zap.Logger) *BasicHandler {
+func NewBasicHandler(basicApp BasicAppInterface, logger *zap.Logger) *BasicHandler {
 	return &BasicHandler{
 		basicApp: basicApp,
 		logger:   logger,
@@ -39,10 +46,16 @@ func (handler *BasicHandler) HandleBasicRequest(w http.ResponseWriter, r *http.R
 	output.Version = input.Version
 
 	// logic starts here
-
-	input.Request.Command += " " + input.Session.UserID + " " + input.UserID
-	output.Response = handler.basicApp.ProcessBasicRequest(input.Request, input.MessageID)
-
+	if input.Session.New {
+		output.Response = handler.basicApp.Activate(input.User.UserID)
+	} else if input.MessageID == 1 {
+		output.Response = handler.basicApp.InitIfUserNew(input.User.UserID, input.Command)
+		if output.Response.Text == "" {
+			output.Response = handler.basicApp.ProcessBasicRequest(input.Request, input.MessageID)
+		}
+	} else {
+		output.Response = handler.basicApp.ProcessBasicRequest(input.Request, input.MessageID)
+	}
 	// logic ends here
 
 	responseBody, err := json.Marshal(output)

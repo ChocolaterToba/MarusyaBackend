@@ -1,10 +1,13 @@
 package main
 
 import (
+	"cmkids/adapter"
 	basicApp "cmkids/application/basic"
 	basicHandler "cmkids/interfaces/basic"
 	"cmkids/interfaces/routing"
+	"cmkids/repository/basic"
 	"fmt"
+	"github.com/joho/godotenv"
 	"net/http"
 	"os"
 
@@ -18,7 +21,20 @@ func runServer(addr string) {
 
 	sugarLogger := logger.Sugar()
 
-	basicApp := basicApp.NewBasicApp()
+	err := godotenv.Load("db.env")
+	if err != nil {
+		sugarLogger.Fatal("Could not load db.env file", zap.String("error", err.Error()))
+	}
+	host := os.Getenv("DB_HOST")
+	pass := os.Getenv("DB_PASS")
+
+	conn, err := adapter.InitDB(host, pass)
+	if err != nil {
+		sugarLogger.Fatal("Can not init db connection", zap.String("error", err.Error()))
+	}
+
+	basicRep := basic.NewRepository(conn)
+	basicApp := basicApp.NewBasicApp(basicRep)
 	basicHandler := basicHandler.NewBasicHandler(basicApp, logger)
 
 	os.Setenv("CSRF_ON", "false")
