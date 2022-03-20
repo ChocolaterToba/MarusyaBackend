@@ -69,7 +69,7 @@ func (r *Repository) IsNewUser(userID string, logger *zap.Logger) (name string, 
 		isNew = false
 		name, err = getUserByUserID(tx, userID)
 		if err != nil {
-			logger.Info("I AM OK 4")
+			logger.Info("I AM OK 3")
 			if errors.Is(err, sql.ErrNoRows) {
 				isNew = true
 				return nil
