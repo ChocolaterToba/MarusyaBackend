@@ -63,9 +63,8 @@ func (r *Repository) IsNewUser(userID string, logger *zap.Logger) (name string, 
 	err = r.conn.InTx(func(tx *sql.Tx) error {
 		if tx == nil {
 			logger.Info("IAM NIL")
-			return fmt.Errorf("IAM NIL")
 		}
-		logger.Info("I AM OK 3")
+		logger.Info("I AM OK 5")
 		isNew = false
 		name, err = getUserByUserID(tx, userID)
 		if err != nil {
@@ -76,6 +75,7 @@ func (r *Repository) IsNewUser(userID string, logger *zap.Logger) (name string, 
 			}
 			return fmt.Errorf("error in InsertNewUser.insertNewUser: %w", err)
 		}
+		logger.Info("I AM OK 6")
 		return nil
 	},
 	)

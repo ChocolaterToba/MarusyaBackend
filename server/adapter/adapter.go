@@ -15,7 +15,8 @@ type Adapter interface {
 }
 
 func (b *DBAdapter) InTx(f func(tx *sql.Tx) error) (err error) {
-	tx, err := b.Conn.Begin()
+	tx := new(sql.Tx)
+	tx, err = b.Conn.Begin()
 	defer func() {
 		if p := recover(); p != nil {
 			_ = tx.Rollback()
