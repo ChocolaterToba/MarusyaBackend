@@ -33,6 +33,7 @@ func NewBasicHandler(basicApp BasicAppInterface, logger *zap.Logger) *BasicHandl
 //HandleBasicRequest changes password of current user
 func (handler *BasicHandler) HandleBasicRequest(w http.ResponseWriter, r *http.Request) {
 	input := new(marusia.RequestBody)
+	handler.logger.Info("I AM OK -2")
 	err := json.NewDecoder(r.Body).Decode(input)
 	if err != nil {
 		handler.logger.Info(err.Error(), zap.String("url", r.RequestURI), zap.String("method", r.Method))
@@ -40,6 +41,7 @@ func (handler *BasicHandler) HandleBasicRequest(w http.ResponseWriter, r *http.R
 		return
 	}
 
+	handler.logger.Info("I AM OK -1")
 	output := new(marusia.ResponseBody)
 
 	output.Session = input.Session
