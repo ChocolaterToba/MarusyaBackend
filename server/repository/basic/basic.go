@@ -60,6 +60,9 @@ func (r *Repository) GetUserByUserID(userID string) (name string, err error) {
 
 func (r *Repository) IsNewUser(userID string) (name string, isNew bool, err error) {
 	err = r.conn.InTx(func(tx *sql.Tx) error {
+		if tx == nil {
+			return fmt.Errorf("IAM NIL")
+		}
 		isNew = false
 		name, err = getUserByUserID(tx, userID)
 		if err != nil {
@@ -70,7 +73,8 @@ func (r *Repository) IsNewUser(userID string) (name string, isNew bool, err erro
 			return fmt.Errorf("error in InsertNewUser.insertNewUser: %w", err)
 		}
 		return nil
-	})
+	},
+	)
 
 	return
 }

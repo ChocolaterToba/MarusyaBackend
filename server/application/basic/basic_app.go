@@ -11,9 +11,6 @@ import (
 const welcomeNewUserMsg = "Привет! Я постараюсь научить тебя железным правилам детской безопасности. Как я могу к тебе обращаться?"
 const welcomeMsg = "Привет, %s?"
 
-type Reader interface {
-}
-
 type Writer interface {
 	InsertNewUser(userID, vkID, name string) (inserted bool, err error)
 	IsNewUser(userID string) (name string, isNew bool, err error)
@@ -21,7 +18,6 @@ type Writer interface {
 }
 
 type BasicApp struct {
-	Reader
 	Writer
 	logger *zap.Logger
 }
