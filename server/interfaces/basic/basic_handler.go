@@ -49,6 +49,9 @@ func (handler *BasicHandler) HandleBasicRequest(w http.ResponseWriter, r *http.R
 
 	// logic starts here
 	if input.Session.New {
+		if handler.basicApp.Activate == nil {
+			handler.logger.Info("I AM NOT /1")
+		}
 		handler.logger.Info("I AM OK /1")
 		output.Response = handler.basicApp.Activate(input.User.UserID)
 	} else if input.MessageID == 1 {
