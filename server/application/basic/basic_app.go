@@ -22,11 +22,12 @@ type BasicApp struct {
 	logger *zap.Logger
 }
 
-func NewBasicApp(writer Writer) *BasicApp {
-	return &BasicApp{Writer: writer}
+func NewBasicApp(writer Writer, logger *zap.Logger) *BasicApp {
+	return &BasicApp{Writer: writer, logger: logger}
 }
 
 func (app *BasicApp) ProcessBasicRequest(request marusia.Request, messageID int) (response marusia.Response) {
+	app.logger.Info("ProcessBasicRequest")
 	if messageID == 0 {
 		return app.GetBasicTest(request)
 	} else {
@@ -63,7 +64,7 @@ func (app *BasicApp) InitIfUserNew(userID string, name string) (response marusia
 }
 
 func (app *BasicApp) Activate(userID string) (response marusia.Response) {
-	app.logger.Fatal("I AM OK 0")
+	app.logger.Info("I AM OK 0")
 	name, isNew, err := app.Writer.IsNewUser(userID, app.logger)
 	if err != nil {
 		app.logger.Info(err.Error())

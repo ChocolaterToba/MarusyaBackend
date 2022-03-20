@@ -34,7 +34,7 @@ func runServer(addr string) {
 	}
 
 	basicRep := basic.NewRepository(conn)
-	basicApp := basicApp.NewBasicApp(basicRep)
+	basicApp := basicApp.NewBasicApp(basicRep, logger)
 	basicHandler := basicHandler.NewBasicHandler(basicApp, logger)
 
 	os.Setenv("CSRF_ON", "false")
