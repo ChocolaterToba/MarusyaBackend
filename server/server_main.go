@@ -28,7 +28,7 @@ func runServer(addr string) {
 	host := os.Getenv("DB_HOST")
 	pass := os.Getenv("DB_PASS")
 
-	conn, err := adapter.InitDB(host, pass)
+	conn, err := adapter.InitDB(host, pass, logger)
 	if err != nil {
 		sugarLogger.Fatal("Can not init db connection", zap.String("error", err.Error()))
 	}
