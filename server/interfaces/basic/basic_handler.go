@@ -53,9 +53,9 @@ func (handler *BasicHandler) HandleBasicRequest(w http.ResponseWriter, r *http.R
 			handler.logger.Info("I AM NOT /1")
 		}
 		handler.logger.Info("I AM OK /1")
-		output.Response = handler.basicApp.Activate(input.User.UserID)
+		output.Response = handler.basicApp.Activate(input.UserID)
 	} else if input.MessageID == 1 {
-		output.Response = handler.basicApp.InitIfUserNew(input.User.UserID, input.Command)
+		output.Response = handler.basicApp.InitIfUserNew(input.UserID, input.Command)
 		if output.Response.Text == "" {
 			output.Response = handler.basicApp.ProcessBasicRequest(input.Request, input.MessageID)
 		}
