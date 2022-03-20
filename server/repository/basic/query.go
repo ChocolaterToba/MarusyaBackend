@@ -13,11 +13,10 @@ func insertNewUser(tx *sql.Tx, userID, vkId, name string) (err error) {
 
 func insertNewUserName(tx *sql.Tx, userID, name string) (err error) {
 	const query = `
-				UPDATE user_info SET 
-				name = $1 
-				WHERE user_id=$2`
+				INSERT INTO user_info (user_id, vk_id, name)
+				VALUES ($1, $2, $3)`
 
-	_, err = tx.Exec(query, name, userID)
+	_, err = tx.Exec(query, userID, "", name)
 	return err
 }
 

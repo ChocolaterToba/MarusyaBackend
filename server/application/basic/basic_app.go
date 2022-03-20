@@ -13,7 +13,7 @@ const welcomeMsg = "Привет, %s?"
 
 type Writer interface {
 	InsertNewUser(userID, vkID, name string) (inserted bool, err error)
-	IsNewUser(userID string, logger *zap.Logger) (name string, isNew bool, err error)
+	IsNewUser(userID string) (name string, isNew bool, err error)
 	InsertNewUserName(userID, name string) (err error)
 }
 
@@ -27,7 +27,6 @@ func NewBasicApp(writer Writer, logger *zap.Logger) *BasicApp {
 }
 
 func (app *BasicApp) ProcessBasicRequest(request marusia.Request, messageID int) (response marusia.Response) {
-	app.logger.Info("ProcessBasicRequest")
 	if messageID == 0 {
 		return app.GetBasicTest(request)
 	} else {
@@ -36,7 +35,7 @@ func (app *BasicApp) ProcessBasicRequest(request marusia.Request, messageID int)
 }
 
 func (app *BasicApp) InitIfUserNew(userID string, name string) (response marusia.Response) {
-	_, isNew, err := app.Writer.IsNewUser(userID, app.logger)
+	_, isNew, err := app.Writer.IsNewUser(userID)
 	if err != nil {
 		app.logger.Info(err.Error())
 		return marusia.Response{
@@ -64,8 +63,7 @@ func (app *BasicApp) InitIfUserNew(userID string, name string) (response marusia
 }
 
 func (app *BasicApp) Activate(userID string) (response marusia.Response) {
-	app.logger.Info("I AM OK 0")
-	name, isNew, err := app.Writer.IsNewUser(userID, app.logger)
+	name, isNew, err := app.Writer.IsNewUser(userID)
 	if err != nil {
 		app.logger.Info(err.Error())
 		return marusia.Response{
@@ -73,7 +71,6 @@ func (app *BasicApp) Activate(userID string) (response marusia.Response) {
 			Text:       fmt.Sprintf("Ошибочка"),
 		}
 	}
-	app.logger.Info("I AM OK 1")
 	response.EndSession = false
 	if isNew {
 		response.Text = welcomeNewUserMsg

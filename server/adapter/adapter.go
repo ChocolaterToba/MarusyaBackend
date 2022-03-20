@@ -4,12 +4,10 @@ import (
 	"database/sql"
 	"fmt"
 	_ "github.com/lib/pq"
-	"go.uber.org/zap"
 )
 
 type DBAdapter struct {
 	Conn *sql.DB
-	logger *zap.Logger
 }
 
 type Adapter interface {
@@ -19,29 +17,25 @@ type Adapter interface {
 func (b *DBAdapter) InTx(f func(tx *sql.Tx) error) (err error) {
 	tx, err := b.Conn.Begin()
 	if err != nil {
-		b.logger.Info(err.Error(), zap.String("msg:", "CAN NOT INIT TX"))
+		return err
 	}
 
 	defer func() {
 		if p := recover(); p != nil {
 			_ = tx.Rollback()
-			panic(p) // fallthrough panic after rollback on caught panic
+			panic(p)
 		} else if err != nil {
-			_ = tx.Rollback() // if error during computations
+			_ = tx.Rollback()
 		} else {
-			err = tx.Commit() // all good
+			err = tx.Commit()
 		}
 	}()
-	if tx == nil {
-		b.logger.Info("ADAPTER ERR")
 
-	}
-	b.logger.Info("ADAPTER")
 	err = f(tx)
 	return
 }
 
-func InitDB(host, pass string, logger *zap.Logger) (Adapter, error) {
+func InitDB(host, pass string) (Adapter, error) {
 
 	connFmt := `
         host=%s 
@@ -58,5 +52,5 @@ func InitDB(host, pass string, logger *zap.Logger) (Adapter, error) {
 		return nil, err
 	}
 
-	return &DBAdapter{Conn: conn, logger: logger}, nil
+	return &DBAdapter{Conn: conn}, nil
 }

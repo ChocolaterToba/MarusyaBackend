@@ -5,7 +5,6 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
-	"go.uber.org/zap"
 )
 
 type Repository struct {
@@ -59,23 +58,17 @@ func (r *Repository) GetUserByUserID(userID string) (name string, err error) {
 	return
 }
 
-func (r *Repository) IsNewUser(userID string, logger *zap.Logger) (name string, isNew bool, err error) {
+func (r *Repository) IsNewUser(userID string) (name string, isNew bool, err error) {
 	err = r.conn.InTx(func(tx *sql.Tx) error {
-		if tx == nil {
-			logger.Info("IAM NIL")
-		}
-		logger.Info("I AM OK 5")
 		isNew = false
 		name, err = getUserByUserID(tx, userID)
 		if err != nil {
-			logger.Info("I AM OK 3")
 			if errors.Is(err, sql.ErrNoRows) {
 				isNew = true
 				return nil
 			}
 			return fmt.Errorf("error in InsertNewUser.insertNewUser: %w", err)
 		}
-		logger.Info("I AM OK 6")
 		return nil
 	},
 	)
