@@ -35,7 +35,7 @@ func (app *BasicApp) ProcessBasicRequest(request marusia.Request, messageID int)
 }
 
 func (app *BasicApp) InitIfUserNew(userID string, name string) (response marusia.Response) {
-	_, isNew, err := app.IsNewUser(userID)
+	_, isNew, err := app.IsNewUser(userID, app.logger)
 	if err != nil {
 		app.logger.Info(err.Error())
 		return marusia.Response{
@@ -64,7 +64,7 @@ func (app *BasicApp) InitIfUserNew(userID string, name string) (response marusia
 
 func (app *BasicApp) Activate(userID string) (response marusia.Response) {
 	app.logger.Info("I AM OK 0")
-	name, isNew, err := app.IsNewUser(userID)
+	name, isNew, err := app.IsNewUser(userID, app.logger)
 	if err != nil {
 		app.logger.Info(err.Error())
 		return marusia.Response{
