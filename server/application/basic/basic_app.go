@@ -63,6 +63,7 @@ func (app *BasicApp) InitIfUserNew(userID string, name string) (response marusia
 }
 
 func (app *BasicApp) Activate(userID string) (response marusia.Response) {
+	app.logger.Info("I AM OK 0")
 	name, isNew, err := app.IsNewUser(userID)
 	if err != nil {
 		app.logger.Info(err.Error())
@@ -71,7 +72,7 @@ func (app *BasicApp) Activate(userID string) (response marusia.Response) {
 			Text:       fmt.Sprintf("Ошибочка"),
 		}
 	}
-
+	app.logger.Info("I AM OK 1")
 	response.EndSession = false
 	if isNew {
 		response.Text = welcomeNewUserMsg
