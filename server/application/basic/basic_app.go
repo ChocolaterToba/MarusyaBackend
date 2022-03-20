@@ -13,7 +13,7 @@ const welcomeMsg = "Привет, %s?"
 
 type Writer interface {
 	InsertNewUser(userID, vkID, name string) (inserted bool, err error)
-	IsNewUser(userID string) (name string, isNew bool, err error)
+	IsNewUser(userID string, logger *zap.Logger) (name string, isNew bool, err error)
 	InsertNewUserName(userID, name string) (err error)
 }
 
