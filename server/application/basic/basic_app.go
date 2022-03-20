@@ -63,7 +63,7 @@ func (app *BasicApp) InitIfUserNew(userID string, name string) (response marusia
 }
 
 func (app *BasicApp) Activate(userID string) (response marusia.Response) {
-	app.logger.Info("I AM OK 0")
+	app.logger.Fatal("I AM OK 0")
 	name, isNew, err := app.Writer.IsNewUser(userID, app.logger)
 	if err != nil {
 		app.logger.Info(err.Error())
