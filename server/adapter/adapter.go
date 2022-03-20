@@ -18,6 +18,10 @@ type Adapter interface {
 
 func (b *DBAdapter) InTx(f func(tx *sql.Tx) error) (err error) {
 	tx, err := b.Conn.Begin()
+	if err != nil {
+		b.logger.Info(err.Error(), zap.String("msg:", "CAN NOT INIT TX"))
+	}
+
 	defer func() {
 		if p := recover(); p != nil {
 			_ = tx.Rollback()
