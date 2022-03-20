@@ -49,6 +49,7 @@ func (handler *BasicHandler) HandleBasicRequest(w http.ResponseWriter, r *http.R
 
 	// logic starts here
 	if input.Session.New {
+		handler.logger.Info("I AM OK /1")
 		output.Response = handler.basicApp.Activate(input.User.UserID)
 	} else if input.MessageID == 1 {
 		output.Response = handler.basicApp.InitIfUserNew(input.User.UserID, input.Command)
