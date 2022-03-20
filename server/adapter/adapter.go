@@ -50,7 +50,7 @@ func InitDB(host, pass string, logger *zap.Logger) (Adapter, error) {
         user=mikhail
         password=%s
         sslmode=verify-full
-        sslrootcert=/home/username/.postgresql/root.crt
+        sslrootcert=/home/mikhail/.postgresql/root.crt
 `
 
 	conn, err := sql.Open("postgres", fmt.Sprintf(connFmt, host, pass))
