@@ -9,7 +9,7 @@ import (
 )
 
 const welcomeNewUserMsg = "Привет! Я постараюсь научить тебя железным правилам детской безопасности. Как я могу к тебе обращаться?"
-const welcomeMsg = "Привет, %s?"
+const welcomeMsg = "Привет, %s."
 
 type Writer interface {
 	InsertNewUser(userID, vkID, name string) (inserted bool, err error)
