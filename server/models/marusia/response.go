@@ -20,3 +20,16 @@ type Button struct {
 	Payload json.RawMessage `json:"payload,omitempty"`
 	Url     string          `json:"url,omitempty"`
 }
+
+func ToButtons(choices []string) []Button {
+	result := make([]Button, 0, len(choices))
+	for _, choice := range choices {
+		result = append(result, Button{
+			Title:   choice,
+			Payload: []byte{},
+			Url:     "",
+		})
+	}
+
+	return result
+}

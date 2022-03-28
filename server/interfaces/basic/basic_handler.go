@@ -1,7 +1,9 @@
 package basic
 
 import (
+	quizApp "cmkids/application/quiz"
 	"encoding/json"
+	"fmt"
 	"net/http"
 
 	"cmkids/models/marusia"
@@ -9,31 +11,22 @@ import (
 	"go.uber.org/zap"
 )
 
-type BasicAppInterface interface {
-	Activate(userID string) (response marusia.Response)
-	InitIfUserNew(userID string, name string) (response marusia.Response)
-	ProcessBasicRequest(request marusia.Request, messageID int) (response marusia.Response)
-	GetBasicTest(request marusia.Request) (response marusia.Response)
-	RespondToBasicAnswer(request marusia.Request) (response marusia.Response)
-}
-
 // BasicHandler keep information about apps and cookies needed for basic package
 type BasicHandler struct {
-	basicApp BasicAppInterface
-	logger   *zap.Logger
+	quizApp quizApp.QuizAppInterface
+	logger  *zap.Logger
 }
 
-func NewBasicHandler(basicApp BasicAppInterface, logger *zap.Logger) *BasicHandler {
+func NewBasicHandler(quizApp quizApp.QuizAppInterface, logger *zap.Logger) *BasicHandler {
 	return &BasicHandler{
-		basicApp: basicApp,
-		logger:   logger,
+		quizApp: quizApp,
+		logger:  logger,
 	}
 }
 
 //HandleBasicRequest changes password of current user
 func (handler *BasicHandler) HandleBasicRequest(w http.ResponseWriter, r *http.Request) {
 	input := new(marusia.RequestBody)
-	handler.logger.Info("I AM OK -2")
 	err := json.NewDecoder(r.Body).Decode(input)
 	if err != nil {
 		handler.logger.Info(err.Error(), zap.String("url", r.RequestURI), zap.String("method", r.Method))
@@ -41,27 +34,18 @@ func (handler *BasicHandler) HandleBasicRequest(w http.ResponseWriter, r *http.R
 		return
 	}
 
-	handler.logger.Info("I AM OK -1")
 	output := new(marusia.ResponseBody)
 
 	output.Session = input.Session
 	output.Version = input.Version
 
 	// logic starts here
-	if input.Session.New {
-		if handler.basicApp.Activate == nil || handler.basicApp == nil {
-			handler.logger.Info("I AM NOT /1")
-		}
-		handler.logger.Info("I AM OK /1",zap.String("user: ", input.UserID))
-		output.Response = handler.basicApp.Activate(input.UserID)
-	} else if input.MessageID == 1 {
-		output.Response = handler.basicApp.InitIfUserNew(input.UserID, input.Command)
-		if output.Response.Text == "" {
-			output.Response = handler.basicApp.ProcessBasicRequest(input.Request, input.MessageID)
-		}
-	} else {
-		output.Response = handler.basicApp.ProcessBasicRequest(input.Request, input.MessageID)
+
+	output.Response, err = handler.quizApp.ProcessBasicRequest(*input)
+	if err != nil {
+		output.Response = makeErrResponse(err)
 	}
+
 	// logic ends here
 
 	responseBody, err := json.Marshal(output)
@@ -74,4 +58,11 @@ func (handler *BasicHandler) HandleBasicRequest(w http.ResponseWriter, r *http.R
 	w.Header().Add("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
 	w.Write(responseBody)
+}
+
+func makeErrResponse(err error) marusia.Response {
+	return marusia.Response{
+		Text:       fmt.Sprintf("Произошла ошибка: %s", err.Error()),
+		EndSession: true,
+	}
 }

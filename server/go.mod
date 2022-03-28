@@ -9,4 +9,5 @@ require (
 	github.com/lib/pq v1.10.4
 	github.com/rs/cors v1.8.2
 	go.uber.org/zap v1.21.0
+	golang.org/x/exp v0.0.0-20220325121720-054d8573a5d8 // indirect
 )

@@ -2,14 +2,17 @@ package main
 
 import (
 	"cmkids/adapter"
-	basicApp "cmkids/application/basic"
+	authapp "cmkids/application/auth"
+	quizapp "cmkids/application/quiz"
 	basicHandler "cmkids/interfaces/basic"
 	"cmkids/interfaces/routing"
-	"cmkids/repository/basic"
+	quizrepo "cmkids/repository/quiz"
+	userrepo "cmkids/repository/user"
 	"fmt"
-	"github.com/joho/godotenv"
 	"net/http"
 	"os"
+
+	"github.com/joho/godotenv"
 
 	"github.com/rs/cors"
 	"go.uber.org/zap"
@@ -33,14 +36,17 @@ func runServer(addr string) {
 		sugarLogger.Fatal("Can not init db connection", zap.String("error", err.Error()))
 	}
 
-	basicRep := basic.NewRepository(conn)
-	basicApp := basicApp.NewBasicApp(basicRep, logger)
-	basicHandler := basicHandler.NewBasicHandler(basicApp, logger)
+	userRepo := userrepo.NewUserRepo(conn)
+	quizRepo := quizrepo.NewQuizRepo(conn)
 
-	os.Setenv("CSRF_ON", "false")
+	authApp := authapp.NewAuthApp(userRepo, logger)
+	quizApp := quizapp.NewQuizApp(authApp, quizRepo, logger)
+
+	basicHandler := basicHandler.NewBasicHandler(quizApp, logger)
+
 	os.Setenv("HTTPS_ON", "false")
 
-	r := routing.CreateRouter(basicHandler, os.Getenv("CSRF_ON") == "true", os.Getenv("HTTPS_ON") == "true")
+	r := routing.CreateRouter(basicHandler)
 
 	allowedOrigins := make([]string, 0)
 	switch os.Getenv("HTTPS_ON") {
