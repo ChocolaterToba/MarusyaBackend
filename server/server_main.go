@@ -39,7 +39,7 @@ func runServer(addr string) {
 	userRepo := userrepo.NewUserRepo(conn)
 	quizRepo := quizrepo.NewQuizRepo(conn)
 
-	authApp := authapp.NewAuthApp(userRepo, logger)
+	authApp := authapp.NewAuthApp(userRepo, quizRepo, logger)
 	quizApp := quizapp.NewQuizApp(authApp, quizRepo, logger)
 
 	basicHandler := basicHandler.NewBasicHandler(quizApp, logger)
