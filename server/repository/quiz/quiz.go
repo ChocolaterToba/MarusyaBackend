@@ -2,6 +2,7 @@ package quiz
 
 import (
 	"cmkids/adapter"
+	authModels "cmkids/models/auth"
 	quizModels "cmkids/models/quiz"
 	"encoding/json"
 	"errors"
@@ -12,6 +13,7 @@ import (
 
 type QuizRepoInterface interface {
 	GetCurrentQuestionID(userID uint64) (questionID uint64, err error)
+	SetCurrentQuestionID(userID uint64, questionID uint64) (err error)
 	GetQuestion(questionID uint64) (question quizModels.Question, err error)
 }
 
@@ -40,6 +42,31 @@ func (repo *QuizRepo) GetCurrentQuestionID(userID uint64) (questionID uint64, er
 	})
 
 	return questionID, err
+}
+
+func (repo *QuizRepo) SetCurrentQuestionID(userID uint64, questionID uint64) (err error) {
+	err = repo.conn.InTx(func(tx *sql.Tx) error {
+		const query = `INSERT INTO account(current_question_id)
+					   VALUES ($2)
+					   WHERE user_id = $1`
+
+		result, err := tx.Exec(query, userID, questionID)
+		if err != nil {
+			return fmt.Errorf("error in QuizRepo: could not set current_question_id: %s", err)
+		}
+
+		rowsAffected, err := result.RowsAffected()
+		if err != nil {
+			return fmt.Errorf("error in QuizRepo: could not set current_question_id: %s", err)
+		}
+		if rowsAffected != 1 {
+			return authModels.ErrUserNotFound
+		}
+
+		return nil
+	})
+
+	return err
 }
 
 func (repo *QuizRepo) GetQuestion(questionID uint64) (question quizModels.Question, err error) {

@@ -56,7 +56,17 @@ func (app *QuizApp) ProcessBasicRequest(input marusia.RequestBody) (response mar
 		return marusia.Response{}, err
 	}
 
-	//TODO: finishing a test
+	if len(currentQuestion.NextQuestionIDs) == 0 { // No next questions => this question is the last one, go to root
+		err = app.quizRepo.SetCurrentQuestionID(userID, quizModels.QuizRootID)
+		if err != nil {
+			return marusia.Response{}, err
+		}
+		return marusia.Response{
+			Text:       currentQuestion.Text,
+			Buttons:    marusia.ToButtons(getKeys(currentQuestion.NextQuestionIDs)),
+			EndSession: false,
+		}, nil
+	}
 
 	nextQuestionID, err := getNextQuestionID(input.Request.OriginalUtterance, currentQuestion.NextQuestionIDs)
 	if err != nil {
@@ -69,6 +79,11 @@ func (app *QuizApp) ProcessBasicRequest(input marusia.RequestBody) (response mar
 			Buttons:    marusia.ToButtons(getKeys(currentQuestion.NextQuestionIDs)),
 			EndSession: false,
 		}, nil
+	}
+
+	err = app.quizRepo.SetCurrentQuestionID(userID, nextQuestionID)
+	if err != nil {
+		return marusia.Response{}, err
 	}
 
 	nextQuestion, err := app.quizRepo.GetQuestion(nextQuestionID)
