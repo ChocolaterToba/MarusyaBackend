@@ -9,7 +9,7 @@ type ResponseBody struct {
 }
 
 type Response struct {
-	Text       string   `json:"text"`
+	Text       []string `json:"text"`
 	TTS        string   `json:"tts,omitempty"`
 	Buttons    []Button `json:"buttons,omitempty"`
 	EndSession bool     `json:"end_session"`

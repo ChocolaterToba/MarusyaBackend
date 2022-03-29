@@ -62,7 +62,7 @@ func (handler *BasicHandler) HandleBasicRequest(w http.ResponseWriter, r *http.R
 
 func makeErrResponse(err error) marusia.Response {
 	return marusia.Response{
-		Text:       fmt.Sprintf("Произошла ошибка: %s", err.Error()),
+		Text:       []string{fmt.Sprintf("Произошла ошибка: %s", err.Error())},
 		EndSession: true,
 	}
 }

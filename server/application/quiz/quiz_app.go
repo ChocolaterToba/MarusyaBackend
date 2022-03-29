@@ -31,23 +31,27 @@ func NewQuizApp(authApp authApp.AuthAppInterface, quizRepo quizRepo.QuizRepoInte
 
 func (app *QuizApp) ProcessBasicRequest(input marusia.RequestBody) (response marusia.Response, err error) {
 	if input.Session.New {
-		return app.authApp.Login(input)
-		// TODO: add test continuation prompt
+		response, finished, err := app.authApp.Login(input)
+		if !finished {
+			return response, err
+		}
 	}
 
 	userID, err := app.authApp.GetUserIDBySessionID(input.Session.SessionID)
 	if err != nil {
 		if err == authModels.ErrUserNotFound && input.Session.MessageID == 1 {
-			return app.authApp.Register(input)
+			response, finished, err := app.authApp.Register(input)
+			if !finished {
+				return response, err
+			}
+
+			return app.navToRoot(userID, response.Text)
 		}
 		return marusia.Response{}, err
 	}
 
 	currentQuestionID, err := app.quizRepo.GetCurrentQuestionID(userID)
 	if err != nil {
-		if err == quizModels.ErrCurrentQuestionNotFound {
-			return app.GetTestsRoot(input)
-		}
 		return marusia.Response{}, err
 	}
 
@@ -56,16 +60,9 @@ func (app *QuizApp) ProcessBasicRequest(input marusia.RequestBody) (response mar
 		return marusia.Response{}, err
 	}
 
+	// this technically is not supposed to happen, hust in case
 	if len(currentQuestion.NextQuestionIDs) == 0 { // No next questions => this question is the last one, go to root
-		err = app.quizRepo.SetCurrentQuestionID(userID, quizModels.QuizRootID)
-		if err != nil {
-			return marusia.Response{}, err
-		}
-		return marusia.Response{
-			Text:       currentQuestion.Text,
-			Buttons:    marusia.ToButtons(getKeys(currentQuestion.NextQuestionIDs)),
-			EndSession: false,
-		}, nil
+		return app.navToRoot(userID, append(response.Text, currentQuestion.Text))
 	}
 
 	nextQuestionID, err := getNextQuestionID(input.Request.OriginalUtterance, currentQuestion.NextQuestionIDs)
@@ -75,15 +72,10 @@ func (app *QuizApp) ProcessBasicRequest(input marusia.RequestBody) (response mar
 		}
 
 		return marusia.Response{
-			Text:       quizModels.MsgIncorrectInput,
+			Text:       []string{quizModels.MsgIncorrectInput, currentQuestion.Text},
 			Buttons:    marusia.ToButtons(getKeys(currentQuestion.NextQuestionIDs)),
 			EndSession: false,
 		}, nil
-	}
-
-	err = app.quizRepo.SetCurrentQuestionID(userID, nextQuestionID)
-	if err != nil {
-		return marusia.Response{}, err
 	}
 
 	nextQuestion, err := app.quizRepo.GetQuestion(nextQuestionID)
@@ -91,22 +83,36 @@ func (app *QuizApp) ProcessBasicRequest(input marusia.RequestBody) (response mar
 		return marusia.Response{}, err
 	}
 
-	return marusia.Response{
-		Text:       nextQuestion.Text,
-		Buttons:    marusia.ToButtons(getKeys(nextQuestion.NextQuestionIDs)),
-		EndSession: false,
-	}, nil
-}
+	if len(nextQuestion.NextQuestionIDs) == 0 { // No next questions => this question is the last one, go to root
+		return app.navToRoot(userID, append(response.Text, nextQuestion.Text))
+	}
 
-func (app *QuizApp) GetTestsRoot(input marusia.RequestBody) (response marusia.Response, err error) {
-	root, err := app.quizRepo.GetQuestion(quizModels.QuizRootID)
+	err = app.quizRepo.SetCurrentQuestionID(userID, nextQuestionID)
 	if err != nil {
 		return marusia.Response{}, err
 	}
 
 	return marusia.Response{
-		Text:       root.Text,
-		Buttons:    marusia.ToButtons(getKeys(root.NextQuestionIDs)),
+		Text:       append(response.Text, nextQuestion.Text),
+		Buttons:    marusia.ToButtons(getKeys(nextQuestion.NextQuestionIDs)),
+		EndSession: false,
+	}, nil
+}
+
+func (app *QuizApp) navToRoot(userID uint64, prevText []string) (response marusia.Response, err error) {
+	rootQuestion, err := app.quizRepo.GetQuestion(quizModels.QuizRootID)
+	if err != nil {
+		return marusia.Response{}, err
+	}
+
+	err = app.quizRepo.SetCurrentQuestionID(userID, quizModels.QuizRootID)
+	if err != nil {
+		return marusia.Response{}, err
+	}
+
+	return marusia.Response{
+		Text:       append(prevText, rootQuestion.Text),
+		Buttons:    marusia.ToButtons(getKeys(rootQuestion.NextQuestionIDs)),
 		EndSession: false,
 	}, nil
 }
