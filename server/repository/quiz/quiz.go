@@ -46,8 +46,8 @@ func (repo *QuizRepo) GetCurrentQuestionID(userID uint64) (questionID uint64, er
 
 func (repo *QuizRepo) SetCurrentQuestionID(userID uint64, questionID uint64) (err error) {
 	err = repo.conn.InTx(func(tx *sql.Tx) error {
-		const query = `INSERT INTO account(current_question_id)
-					   VALUES ($2)
+		const query = `UPDATE account
+					   SET current_question_id = $2
 					   WHERE user_id = $1`
 
 		result, err := tx.Exec(query, userID, questionID)
