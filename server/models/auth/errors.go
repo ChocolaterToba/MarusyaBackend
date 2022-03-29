@@ -9,5 +9,5 @@ var (
 const (
 	MsgAlreadyLoggedIn    = "Скилл уже был активирован."
 	MsgRegistrationPrompt = "Привет! Как я могу к тебе обращаться?"
-	MsgWelcome            = "Привет, %s."
+	MsgWelcome            = "Привет, %s. Итак, где мы в прошлый раз остановились?"
 )

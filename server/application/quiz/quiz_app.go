@@ -31,7 +31,8 @@ func NewQuizApp(authApp authApp.AuthAppInterface, quizRepo quizRepo.QuizRepoInte
 
 func (app *QuizApp) ProcessBasicRequest(input marusia.RequestBody) (response marusia.Response, err error) {
 	if input.Session.New {
-		response, finished, err := app.authApp.Login(input)
+		var finished bool // to avoid variable shadowing later
+		response, finished, err = app.authApp.Login(input)
 		if !finished {
 			return response, err
 		}
@@ -39,10 +40,16 @@ func (app *QuizApp) ProcessBasicRequest(input marusia.RequestBody) (response mar
 
 	userID, err := app.authApp.GetUserIDBySessionID(input.Session.SessionID)
 	if err != nil {
-		if err == authModels.ErrUserNotFound && input.Session.MessageID == 1 {
-			response, finished, err := app.authApp.Register(input)
+		if err == authModels.ErrUserNotFound && input.Session.MessageID == 1 { // TODO: better registration input detection, beyond messageID
+			var finished bool // to avoid variable shadowing later
+			response, finished, err = app.authApp.Register(input)
 			if !finished {
 				return response, err
+			}
+
+			userID, err := app.authApp.GetUserIDBySessionID(input.Session.SessionID)
+			if err != nil {
+				return marusia.Response{}, err
 			}
 
 			return app.navToRoot(userID, response.Text)
@@ -53,6 +60,10 @@ func (app *QuizApp) ProcessBasicRequest(input marusia.RequestBody) (response mar
 	currentQuestionID, err := app.quizRepo.GetCurrentQuestionID(userID)
 	if err != nil {
 		return marusia.Response{}, err
+	}
+
+	if currentQuestionID == quizModels.QuizRootID {
+		return app.navToRoot(userID, response.Text)
 	}
 
 	currentQuestion, err := app.quizRepo.GetQuestion(currentQuestionID)
