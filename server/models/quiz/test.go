@@ -7,8 +7,9 @@ type Test struct {
 }
 
 type Question struct {
-	QuestionID      uint64
-	TestID          uint64
-	Text            string
-	NextQuestionIDs map[string]uint64
+	QuestionID       uint64
+	QuestionInTestID uint64
+	TestID           uint64
+	Text             string
+	NextQuestionIDs  map[string]uint64
 }

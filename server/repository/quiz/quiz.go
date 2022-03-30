@@ -15,6 +15,7 @@ type QuizRepoInterface interface {
 	GetCurrentQuestionID(userID uint64) (questionID uint64, err error)
 	SetCurrentQuestionID(userID uint64, questionID uint64) (err error)
 	GetQuestion(questionID uint64) (question quizModels.Question, err error)
+	GetQuestionInTest(testID uint64, questionInTestID uint64) (question quizModels.Question, err error)
 }
 
 type QuizRepo struct {
@@ -71,17 +72,45 @@ func (repo *QuizRepo) SetCurrentQuestionID(userID uint64, questionID uint64) (er
 
 func (repo *QuizRepo) GetQuestion(questionID uint64) (question quizModels.Question, err error) {
 	err = repo.conn.InTx(func(tx *sql.Tx) error {
-		const query = `SELECT question_id, test_id, text, next_question_ids
+		const query = `SELECT question_id, question_in_test_id, test_id, text, next_question_ids
 					   FROM question
 					   WHERE question_id = $1`
 
 		nextQuestionIDs := make(cusjsonb)
-		err = tx.QueryRow(query, questionID).Scan(&question.QuestionID, &question.TestID, &question.Text, &nextQuestionIDs)
+		err = tx.QueryRow(query, questionID).Scan(
+			&question.QuestionID, &question.QuestionInTestID, &question.TestID,
+			&question.Text, &nextQuestionIDs,
+		)
 		if err != nil {
 			if errors.Is(err, sql.ErrNoRows) {
 				return quizModels.ErrNextQuestionNotFound
 			}
-			return fmt.Errorf("error in UserRepo: could not get question: %s", err)
+			return fmt.Errorf("error in QuizRepo: could not get question by question_id: %s", err)
+		}
+		question.NextQuestionIDs = nextQuestionIDs
+
+		return nil
+	})
+
+	return question, err
+}
+
+func (repo *QuizRepo) GetQuestionInTest(testID uint64, questionInTestID uint64) (question quizModels.Question, err error) {
+	err = repo.conn.InTx(func(tx *sql.Tx) error {
+		const query = `SELECT question_id, question_in_test_id, test_id, text, next_question_ids
+					   FROM question
+					   WHERE test_id = $1 and question_in_test_id = $2`
+
+		nextQuestionIDs := make(cusjsonb)
+		err = tx.QueryRow(query, testID, questionInTestID).Scan(
+			&question.QuestionID, &question.QuestionInTestID, &question.TestID,
+			&question.Text, &nextQuestionIDs,
+		)
+		if err != nil {
+			if errors.Is(err, sql.ErrNoRows) {
+				return quizModels.ErrNextQuestionNotFound
+			}
+			return fmt.Errorf("error in QuizRepo: could not get question by question_in_test_id: %s", err)
 		}
 		question.NextQuestionIDs = nextQuestionIDs
 

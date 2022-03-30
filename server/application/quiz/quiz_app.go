@@ -79,7 +79,7 @@ func (app *QuizApp) ProcessBasicRequest(input marusia.RequestBody) (response mar
 		return marusia.Response{}, err
 	}
 
-	// this technically is not supposed to happen, hust in case
+	// this technically is not supposed to happen, just in case
 	if len(currentQuestion.NextQuestionIDs) == 0 { // No next questions => this question is the last one, go to root
 		return app.navToQuestion(userID, quizModels.QuizRootID, append(response.Text, currentQuestion.Text))
 	}
@@ -97,7 +97,11 @@ func (app *QuizApp) ProcessBasicRequest(input marusia.RequestBody) (response mar
 		}, nil
 	}
 
-	nextQuestion, err := app.quizRepo.GetQuestion(nextQuestionID)
+	if nextQuestionID == quizModels.QuizRootID { // No next questions => this question is the last one, go to root
+		return app.navToQuestion(userID, quizModels.QuizRootID, response.Text)
+	}
+
+	nextQuestion, err := app.quizRepo.GetQuestionInTest(currentQuestion.TestID, nextQuestionID)
 	if err != nil {
 		return marusia.Response{}, err
 	}
@@ -106,7 +110,7 @@ func (app *QuizApp) ProcessBasicRequest(input marusia.RequestBody) (response mar
 		return app.navToQuestion(userID, quizModels.QuizRootID, append(response.Text, nextQuestion.Text))
 	}
 
-	err = app.quizRepo.SetCurrentQuestionID(userID, nextQuestionID)
+	err = app.quizRepo.SetCurrentQuestionID(userID, nextQuestion.QuestionID)
 	if err != nil {
 		return marusia.Response{}, err
 	}
