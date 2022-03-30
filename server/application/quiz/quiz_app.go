@@ -101,9 +101,17 @@ func (app *QuizApp) ProcessBasicRequest(input marusia.RequestBody) (response mar
 		return app.navToQuestion(userID, quizModels.QuizRootID, response.Text)
 	}
 
-	nextQuestion, err := app.quizRepo.GetQuestionInTest(currentQuestion.TestID, nextQuestionID)
-	if err != nil {
-		return marusia.Response{}, err
+	var nextQuestion quizModels.Question
+	if currentQuestionID == quizModels.QuizRootID { // When we are not in test, nextQuestionID is question_id in db
+		nextQuestion, err = app.quizRepo.GetQuestion(nextQuestionID)
+		if err != nil {
+			return marusia.Response{}, err
+		}
+	} else { // When we are in test, nextQuestionID is question_in_test_id in db
+		nextQuestion, err = app.quizRepo.GetQuestionInTest(currentQuestion.TestID, nextQuestionID)
+		if err != nil {
+			return marusia.Response{}, err
+		}
 	}
 
 	if len(nextQuestion.NextQuestionIDs) == 0 { // No next questions => this question is the last one, go to root
