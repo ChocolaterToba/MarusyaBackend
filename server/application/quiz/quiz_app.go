@@ -97,21 +97,20 @@ func (app *QuizApp) ProcessBasicRequest(input marusia.RequestBody) (response mar
 		}, nil
 	}
 
-	if nextQuestionID == quizModels.QuizRootID { // No next questions => this question is the last one, go to root
-		return app.navToQuestion(userID, quizModels.QuizRootID, response.Text)
-	}
-
 	var nextQuestion quizModels.Question
 	switch currentQuestionID {
-	case quizModels.QuizRootID: // When we are not in test, nextQuestionID is question_id in db
-		nextQuestion, err = app.quizRepo.GetQuestion(nextQuestionID)
-		if err != nil {
-			return marusia.Response{}, err
-		}
 	case nextQuestionID: // If our destination is current question, we repeat it
 		nextQuestion = currentQuestion
 		response.Text = append(response.Text, quizModels.MsgQuestionRepeat)
-	default: // When we are in test, nextQuestionID is internal test id
+
+	case quizModels.QuizRootID: // When we are in root, nextQuestionID is question_id in db
+		return app.navToQuestion(userID, nextQuestionID, response.Text)
+
+	default: // When we are not in root, nextQuestionID is internal test id or root's id
+		if nextQuestionID == quizModels.QuizRootID { // root in not in any test and is handled separately
+			return app.navToQuestion(userID, quizModels.QuizRootID, response.Text)
+		}
+
 		nextQuestion, err = app.quizRepo.GetQuestionInTest(currentQuestion.TestID, nextQuestionID)
 		if err != nil {
 			return marusia.Response{}, err
