@@ -84,7 +84,7 @@ func (app *QuizApp) ProcessBasicRequest(input marusia.RequestBody) (response mar
 		return app.navToQuestion(userID, quizModels.QuizRootID, append(response.Text, currentQuestion.Text))
 	}
 
-	nextQuestionID, err := getNextQuestionID(input.Request.OriginalUtterance, currentQuestion.NextQuestionIDs)
+	nextQuestionID, err := getNextQuestionID(input.Request.OriginalUtterance, currentQuestion)
 	if err != nil {
 		if err != quizModels.ErrNextQuestionNotFound {
 			return marusia.Response{}, err
@@ -102,12 +102,16 @@ func (app *QuizApp) ProcessBasicRequest(input marusia.RequestBody) (response mar
 	}
 
 	var nextQuestion quizModels.Question
-	if currentQuestionID == quizModels.QuizRootID { // When we are not in test, nextQuestionID is question_id in db
+	switch currentQuestionID {
+	case quizModels.QuizRootID: // When we are not in test, nextQuestionID is question_id in db
 		nextQuestion, err = app.quizRepo.GetQuestion(nextQuestionID)
 		if err != nil {
 			return marusia.Response{}, err
 		}
-	} else { // When we are in test, nextQuestionID is question_in_test_id in db
+	case nextQuestionID: // If our destination is current question, we repeat it
+		nextQuestion = currentQuestion
+		response.Text = append(response.Text, quizModels.MsgQuestionRepeat)
+	default: // When we are in test, nextQuestionID is internal test id
 		nextQuestion, err = app.quizRepo.GetQuestionInTest(currentQuestion.TestID, nextQuestionID)
 		if err != nil {
 			return marusia.Response{}, err
@@ -118,9 +122,11 @@ func (app *QuizApp) ProcessBasicRequest(input marusia.RequestBody) (response mar
 		return app.navToQuestion(userID, quizModels.QuizRootID, append(response.Text, nextQuestion.Text))
 	}
 
-	err = app.quizRepo.SetCurrentQuestionID(userID, nextQuestion.QuestionID)
-	if err != nil {
-		return marusia.Response{}, err
+	if nextQuestion.QuestionID != currentQuestion.QuestionID {
+		err = app.quizRepo.SetCurrentQuestionID(userID, nextQuestion.QuestionID)
+		if err != nil {
+			return marusia.Response{}, err
+		}
 	}
 
 	return marusia.Response{
@@ -148,11 +154,18 @@ func (app *QuizApp) navToQuestion(userID uint64, questionID uint64, prevText []s
 	}, nil
 }
 
-func getNextQuestionID(userInput string, nextQuestions map[string]uint64) (nextQuestionID uint64, err error) {
-	// TODO: ML goes here
-	for key := range nextQuestions {
-		if strings.ToLower(key) == strings.ToLower(userInput) {
-			return nextQuestions[key], nil
+func getNextQuestionID(userInput string, question quizModels.Question) (nextQuestionID uint64, err error) {
+	userInput = strings.ToLower(userInput)
+
+	for key := range question.NextQuestionIDs {
+		if strings.ToLower(key) == userInput {
+			return question.NextQuestionIDs[key], nil
+		}
+	}
+
+	for _, repeatAnswer := range quizModels.AnswersRepeat {
+		if strings.Contains(userInput, repeatAnswer) {
+			return question.QuestionID, nil
 		}
 	}
 	return 0, quizModels.ErrNextQuestionNotFound
