@@ -8,9 +8,9 @@ const (
 )
 
 const (
-	QuizGetHelp       = -3
-	QuizFirstQuestion = -2
-	QuizQuitGame      = -1
+	QuizGetHelp       = 1000000
+	QuizFirstQuestion = 1000001
+	QuizQuitGame      = 1000002
 	QuizRootID        = 0
 )
 
