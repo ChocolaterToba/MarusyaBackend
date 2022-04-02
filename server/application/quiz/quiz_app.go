@@ -191,7 +191,7 @@ func getLastMatch(userInput string, matches map[string]uint64) (resultMatch uint
 	lastMatch := ""
 	lastMatchIndex := -1
 	for key := range matches {
-		newMatchIndex := strings.LastIndex(userInput, strings.ToLower(key))
+		newMatchIndex := strings.LastIndex(userInput, strings.TrimRight(strings.ToLower(key), ".?!"))
 		if newMatchIndex > lastMatchIndex {
 			lastMatch = key
 			lastMatchIndex = newMatchIndex
