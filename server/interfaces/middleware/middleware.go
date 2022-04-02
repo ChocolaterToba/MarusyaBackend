@@ -4,8 +4,6 @@ import (
 	"net/http"
 
 	"go.uber.org/zap"
-
-	"github.com/gorilla/csrf"
 )
 
 var logger *zap.Logger
@@ -54,17 +52,17 @@ func PanicMid(next http.Handler) http.Handler {
 	})
 }
 
-func CSRFSettingMid(next http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if r != nil {
-			if r.Header.Get("X-CSRF-Token") == "" {
-				token := csrf.Token(r)
-				w.Header().Set("X-CSRF-Token", token)
-			}
-		}
-		next.ServeHTTP(w, r)
-	})
-}
+// func CSRFSettingMid(next http.Handler) http.Handler {
+// 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+// 		if r != nil {
+// 			if r.Header.Get("X-CSRF-Token") == "" {
+// 				token := csrf.Token(r)
+// 				w.Header().Set("X-CSRF-Token", token)
+// 			}
+// 		}
+// 		next.ServeHTTP(w, r)
+// 	})
+// }
 
 // // CheckCookies returns *CookieInfo and true if cookie is present in sessions slice, nil and false othervise
 // func CheckCookies(r *http.Request, cookieApp application.AuthAppInterface) (*entity.CookieInfo, bool) {
