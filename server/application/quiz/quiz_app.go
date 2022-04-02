@@ -162,11 +162,27 @@ func getNextQuestionID(userInput string, question quizModels.Question) (nextQues
 		}
 	}
 
-	for _, repeatAnswer := range quizModels.AnswersRepeat {
-		if strings.Contains(userInput, repeatAnswer) {
+	for _, answerRepeat := range quizModels.AnswersRepeat {
+		if strings.Contains(userInput, answerRepeat) {
 			return question.QuestionID, nil
 		}
 	}
+
+	userInputPositional := userInput
+	for _, prefix := range quizModels.AnswersPositionalPrefixes {
+		userInputPositional = strings.TrimPrefix(userInputPositional, prefix)
+	}
+
+	pos, exists := quizModels.AnswersPositional[userInputPositional]
+	if exists {
+		if pos >= len(question.NextQuestionIDs) {
+			return 0, quizModels.ErrNextQuestionNotFound
+		}
+
+		// if pos is valid, find corresponding answer
+		return question.NextQuestionIDs[getKeys(question.NextQuestionIDs)[pos]], nil
+	}
+
 	return 0, quizModels.ErrNextQuestionNotFound
 }
 
