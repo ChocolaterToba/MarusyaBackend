@@ -122,7 +122,7 @@ func (app *QuizApp) ProcessBasicRequest(input marusia.RequestBody) (response mar
 		return app.navToQuestionByID(userID, quizModels.QuizRootID, append(response.Text, nextQuestion.Text), false)
 	}
 
-	return app.navToQuestion(userID, nextQuestion, append(response.Text, nextQuestion.Text), false)
+	return app.navToQuestion(userID, nextQuestion, response.Text, false)
 }
 
 func (app *QuizApp) navToQuestionByID(userID uint64, questionID uint64, prevText []string, isLoop bool) (response marusia.Response, err error) {
