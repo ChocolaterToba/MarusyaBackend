@@ -135,7 +135,7 @@ func (app *QuizApp) navToQuestionByID(userID uint64, questionID uint64, prevText
 }
 
 func (app *QuizApp) navToQuestion(userID uint64, question quizModels.Question, prevText []string, isLoop bool) (response marusia.Response, err error) {
-	if isLoop {
+	if !isLoop {
 		err = app.quizRepo.SetCurrentQuestionID(userID, question.QuestionID)
 		if err != nil {
 			return marusia.Response{}, err
