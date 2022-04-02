@@ -12,6 +12,12 @@ var (
 		"не понял",
 	}
 
+	AnswersReturnToRoot = []string{
+		"закончи",
+		"прекрати",
+		"останови",
+	}
+
 	AnswersPositional = map[string]int{
 		"первый":    0,
 		"второй":    1,

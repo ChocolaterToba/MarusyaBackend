@@ -166,6 +166,13 @@ func getNextQuestionID(userInput string, question quizModels.Question) (nextQues
 		}
 	}
 
+	// searching for "end test" and similar commands
+	for _, answerReturn := range quizModels.AnswersReturnToRoot {
+		if strings.Contains(userInput, answerReturn) {
+			return quizModels.QuizRootID, nil
+		}
+	}
+
 	userInputTokens := strings.Fields(userInput)
 
 	for i := len(userInputTokens) - 1; i >= 0; i-- {
