@@ -166,26 +166,18 @@ func getNextQuestionID(userInput string, question quizModels.Question) (nextQues
 		}
 	}
 
-	// TODO: rework this somehow
-	userInputPositional := userInput
-	for _, infix := range quizModels.AnswersPositionalInfixes {
-		if strings.HasPrefix(userInputPositional, infix+" ") {
-			userInputPositional = strings.TrimPrefix(userInputPositional, infix+" ")
-		}
-		if strings.HasSuffix(userInputPositional, " "+infix) {
-			userInputPositional = strings.TrimSuffix(userInputPositional, " "+infix)
-		}
-	}
+	userInputTokens := strings.Fields(userInput)
 
-	// searching for "first option" and similar commands
-	pos, exists := quizModels.AnswersPositional[userInputPositional]
-	if exists {
-		if pos >= len(question.NextQuestionIDs) {
-			return 0, quizModels.ErrNextQuestionNotFound
-		}
+	for i := len(userInputTokens) - 1; i >= 0; i-- {
+		pos, exists := quizModels.AnswersPositional[userInputTokens[i]]
+		if exists {
+			if pos >= len(question.NextQuestionIDs) {
+				return 0, quizModels.ErrNextQuestionNotFound
+			}
 
-		// if pos is valid, find corresponding answer
-		return question.NextQuestionIDs[getKeys(question.NextQuestionIDs)[pos]], nil
+			// if pos is valid, find corresponding answer
+			return question.NextQuestionIDs[getKeys(question.NextQuestionIDs)[pos]], nil
+		}
 	}
 
 	return 0, quizModels.ErrNextQuestionNotFound
