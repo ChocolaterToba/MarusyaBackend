@@ -205,7 +205,7 @@ func appendChoices(text []string, choices []string) (result []string) {
 
 	for i, choice := range choices {
 		if i < 5 {
-			choice = fmt.Sprintf("%s: %s", quizModels.Alphabet[i], choice)
+			choice = fmt.Sprintf("%s - %s", quizModels.Alphabet[i], choice)
 		}
 
 		result = append(result, choice)
