@@ -6,6 +6,7 @@ import (
 	"cmkids/models/marusia"
 	quizModels "cmkids/models/quiz"
 	quizRepo "cmkids/repository/quiz"
+	"fmt"
 	"sort"
 	"strings"
 
@@ -47,7 +48,7 @@ func (app *QuizApp) ProcessBasicRequest(input marusia.RequestBody) (response mar
 			return marusia.Response{}, err
 		}
 
-		return app.navToQuestion(userID, currentQuestionID, response.Text)
+		return app.navToQuestionByID(userID, currentQuestionID, response.Text, false)
 	}
 
 	userID, err := app.authApp.GetUserIDBySessionID(input.Session.SessionID)
@@ -59,12 +60,12 @@ func (app *QuizApp) ProcessBasicRequest(input marusia.RequestBody) (response mar
 				return response, err
 			}
 
-			userID, err := app.authApp.GetUserIDBySessionID(input.Session.SessionID)
+			userID, err = app.authApp.GetUserIDBySessionID(input.Session.SessionID)
 			if err != nil {
 				return marusia.Response{}, err
 			}
 
-			return app.navToQuestion(userID, quizModels.QuizRootID, response.Text)
+			return app.navToQuestionByID(userID, quizModels.QuizRootID, response.Text, false)
 		}
 		return marusia.Response{}, err
 	}
@@ -81,7 +82,7 @@ func (app *QuizApp) ProcessBasicRequest(input marusia.RequestBody) (response mar
 
 	// this technically is not supposed to happen, just in case
 	if len(currentQuestion.NextQuestionIDs) == 0 { // No next questions => this question is the last one, go to root
-		return app.navToQuestion(userID, quizModels.QuizRootID, append(response.Text, currentQuestion.Text))
+		return app.navToQuestionByID(userID, quizModels.QuizRootID, append(response.Text, currentQuestion.Text), false)
 	}
 
 	nextQuestionID, err := getNextQuestionID(input.Request.OriginalUtterance, currentQuestion)
@@ -97,58 +98,54 @@ func (app *QuizApp) ProcessBasicRequest(input marusia.RequestBody) (response mar
 		}, nil
 	}
 
-	var nextQuestion quizModels.Question
 	switch currentQuestionID {
 	case nextQuestionID: // If our destination is current question, we repeat it
-		nextQuestion = currentQuestion
 		response.Text = append(response.Text, quizModels.MsgQuestionRepeat)
+		return app.navToQuestion(userID, currentQuestion, response.Text, true)
 
 	case quizModels.QuizRootID: // When we are in root, nextQuestionID is question_id in db
-		return app.navToQuestion(userID, nextQuestionID, response.Text)
+		return app.navToQuestionByID(userID, nextQuestionID, response.Text, false)
 
-	default: // When we are not in root, nextQuestionID is internal test id or root's id
-		if nextQuestionID == quizModels.QuizRootID { // root in not in any test and is handled separately
-			return app.navToQuestion(userID, quizModels.QuizRootID, response.Text)
-		}
+	}
 
-		nextQuestion, err = app.quizRepo.GetQuestionInTest(currentQuestion.TestID, nextQuestionID)
-		if err != nil {
-			return marusia.Response{}, err
-		}
+	// When we are not in root, nextQuestionID is internal test id or root's id
+	if nextQuestionID == quizModels.QuizRootID { // root in not in any test and is handled separately
+		return app.navToQuestionByID(userID, quizModels.QuizRootID, response.Text, false)
+	}
+
+	nextQuestion, err := app.quizRepo.GetQuestionInTest(currentQuestion.TestID, nextQuestionID)
+	if err != nil {
+		return marusia.Response{}, err
 	}
 
 	if len(nextQuestion.NextQuestionIDs) == 0 { // No next questions => this question is the last one, go to root
-		return app.navToQuestion(userID, quizModels.QuizRootID, append(response.Text, nextQuestion.Text))
+		return app.navToQuestionByID(userID, quizModels.QuizRootID, append(response.Text, nextQuestion.Text), false)
 	}
 
-	if nextQuestion.QuestionID != currentQuestion.QuestionID {
-		err = app.quizRepo.SetCurrentQuestionID(userID, nextQuestion.QuestionID)
-		if err != nil {
-			return marusia.Response{}, err
-		}
-	}
-
-	return marusia.Response{
-		Text:       append(response.Text, nextQuestion.Text),
-		Buttons:    marusia.ToButtons(getKeys(nextQuestion.NextQuestionIDs)),
-		EndSession: false,
-	}, nil
+	return app.navToQuestion(userID, nextQuestion, append(response.Text, nextQuestion.Text), false)
 }
 
-func (app *QuizApp) navToQuestion(userID uint64, questionID uint64, prevText []string) (response marusia.Response, err error) {
+func (app *QuizApp) navToQuestionByID(userID uint64, questionID uint64, prevText []string, isLoop bool) (response marusia.Response, err error) {
 	question, err := app.quizRepo.GetQuestion(questionID)
 	if err != nil {
 		return marusia.Response{}, err
 	}
 
-	err = app.quizRepo.SetCurrentQuestionID(userID, questionID)
-	if err != nil {
-		return marusia.Response{}, err
+	return app.navToQuestion(userID, question, prevText, isLoop)
+}
+
+func (app *QuizApp) navToQuestion(userID uint64, question quizModels.Question, prevText []string, isLoop bool) (response marusia.Response, err error) {
+	if isLoop {
+		err = app.quizRepo.SetCurrentQuestionID(userID, question.QuestionID)
+		if err != nil {
+			return marusia.Response{}, err
+		}
 	}
 
+	choices := getKeys(question.NextQuestionIDs)
 	return marusia.Response{
-		Text:       append(prevText, question.Text),
-		Buttons:    marusia.ToButtons(getKeys(question.NextQuestionIDs)),
+		Text:       appendChoices(append(prevText, question.Text), choices),
+		Buttons:    marusia.ToButtons(choices),
 		EndSession: false,
 	}, nil
 }
@@ -200,4 +197,19 @@ func getKeys(input map[string]uint64) (keys []string) {
 
 	sort.Strings(keys)
 	return keys
+}
+
+func appendChoices(text []string, choices []string) (result []string) {
+	result = make([]string, 0, len(text)+len(choices))
+	result = append(result, text...)
+
+	for i, choice := range choices {
+		if i < 5 {
+			choice = fmt.Sprintf("%s: %s", string(quizModels.Alphabet[i]), choice)
+		}
+
+		result = append(result, choice)
+	}
+
+	return result
 }

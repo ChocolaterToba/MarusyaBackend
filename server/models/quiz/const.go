@@ -9,3 +9,7 @@ const (
 const (
 	QuizRootID = 0
 )
+
+const (
+	Alphabet = "АБВГД"
+)
