@@ -169,8 +169,13 @@ func getNextQuestionID(userInput string, question quizModels.Question) (nextQues
 	}
 
 	userInputPositional := userInput
-	for _, prefix := range quizModels.AnswersPositionalPrefixes {
-		userInputPositional = strings.TrimPrefix(userInputPositional, prefix)
+	for _, infix := range quizModels.AnswersPositionalInfixes {
+		if strings.HasPrefix(userInputPositional, infix+" ") {
+			userInputPositional = strings.TrimPrefix(userInputPositional, infix+" ")
+		}
+		if strings.HasSuffix(userInputPositional, infix+" ") {
+			userInputPositional = strings.TrimSuffix(userInputPositional, infix+" ")
+		}
 	}
 
 	pos, exists := quizModels.AnswersPositional[userInputPositional]

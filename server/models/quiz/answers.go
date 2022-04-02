@@ -27,10 +27,10 @@ var (
 		"Д":         4,
 	}
 
-	AnswersPositionalPrefixes = []string{
-		"вариант ",
-		"ответ ",
-		"ответа ",
-		"номер ",
+	AnswersPositionalInfixes = []string{
+		"вариант",
+		"ответ",
+		"ответа",
+		"номер",
 	}
 )
