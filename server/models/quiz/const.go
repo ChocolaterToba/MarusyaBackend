@@ -10,6 +10,12 @@ const (
 	QuizRootID = 0
 )
 
-const (
-	Alphabet = "АБВГД"
+var (
+	Alphabet = []string{
+		`{А}{"А"}`,
+		`{Б}{"Б"}`,
+		`{В}{"В"}`,
+		`{Г}{"Г"}`,
+		`{Д}{"Д"}`,
+	}
 )
