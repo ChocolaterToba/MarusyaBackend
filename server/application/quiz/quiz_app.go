@@ -153,12 +153,13 @@ func (app *QuizApp) navToQuestion(userID uint64, question quizModels.Question, p
 func getNextQuestionID(userInput string, question quizModels.Question) (nextQuestionID uint64, err error) {
 	userInput = strings.ToLower(userInput)
 
-	for key := range question.NextQuestionIDs {
-		if strings.ToLower(key) == userInput {
-			return question.NextQuestionIDs[key], nil
-		}
+	// Searching for answers from db
+	lastMatch, found := getLastMatch(userInput, question.NextQuestionIDs)
+	if found {
+		return lastMatch, nil
 	}
 
+	// searching for "repeat" and similar commands
 	for _, answerRepeat := range quizModels.AnswersRepeat {
 		if strings.Contains(userInput, answerRepeat) {
 			return question.QuestionID, nil
@@ -176,6 +177,7 @@ func getNextQuestionID(userInput string, question quizModels.Question) (nextQues
 		}
 	}
 
+	// searching for "first option" and similar commands
 	pos, exists := quizModels.AnswersPositional[userInputPositional]
 	if exists {
 		if pos >= len(question.NextQuestionIDs) {
@@ -187,6 +189,24 @@ func getNextQuestionID(userInput string, question quizModels.Question) (nextQues
 	}
 
 	return 0, quizModels.ErrNextQuestionNotFound
+}
+
+func getLastMatch(userInput string, matches map[string]uint64) (resultMatch uint64, found bool) {
+	lastMatch := ""
+	lastMatchIndex := -1
+	for key := range matches {
+		newMatchIndex := strings.LastIndex(userInput, strings.ToLower(key))
+		if newMatchIndex > lastMatchIndex {
+			lastMatch = key
+			lastMatchIndex = newMatchIndex
+		}
+	}
+
+	if lastMatch != "" {
+		return matches[lastMatch], true
+	}
+
+	return 0, false
 }
 
 func getKeys(input map[string]uint64) (keys []string) {
