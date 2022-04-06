@@ -118,6 +118,7 @@ func (app *QuizApp) ProcessBasicRequest(input marusia.RequestBody) (response mar
 		return app.navToQuestion(userID, currentQuestion, response.Text, false)
 
 	case quizModels.QuizQuitGame:
+		// TODO: add logout here?
 		return marusia.Response{
 			Text:       []string{authModels.MsgGoodBye},
 			EndSession: true,
