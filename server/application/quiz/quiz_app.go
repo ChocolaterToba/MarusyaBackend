@@ -3,6 +3,7 @@ package quiz
 import (
 	authApp "cmkids/application/auth"
 	authModels "cmkids/models/auth"
+	"cmkids/models/help"
 	"cmkids/models/marusia"
 	quizModels "cmkids/models/quiz"
 	quizRepo "cmkids/repository/quiz"
@@ -101,7 +102,26 @@ func (app *QuizApp) ProcessBasicRequest(input marusia.RequestBody) (response mar
 
 	case quizModels.QuizRootID: // When we are in root, nextQuestionID is question_id in db
 		return app.navToQuestionByID(userID, nextQuestionID, response.Text, false)
+	}
 
+	switch nextQuestionID {
+	case quizModels.QuizFirstQuestion:
+		firstQuestion, err := app.quizRepo.GetQuestionInTest(currentQuestion.TestID, 1)
+		if err != nil {
+			return marusia.Response{}, err
+		}
+		response.Text = append(response.Text, quizModels.MsgStartOverTest)
+		return app.navToQuestion(userID, firstQuestion, response.Text, false)
+
+	case quizModels.QuizGetHelp:
+		response.Text = append(response.Text, help.MsgHelpMe)
+		return app.navToQuestion(userID, currentQuestion, response.Text, false)
+
+	case quizModels.QuizQuitGame:
+		return marusia.Response{
+			Text:       []string{authModels.MsgGoodBye},
+			EndSession: true,
+		}, nil
 	}
 
 	// When we are not in root, nextQuestionID is internal test id or root's id
@@ -163,10 +183,29 @@ func getNextQuestionID(userInput string, question quizModels.Question) (nextQues
 		}
 	}
 
+	// searching for "start test again" and similar commands
+	for _, answerReturnToFirstQuestion := range quizModels.AnswersReturnToFirstQuestion {
+		if strings.Contains(userInput, answerReturnToFirstQuestion) {
+			return quizModels.QuizFirstQuestion, nil
+		}
+	}
+
 	// searching for "end test" and similar commands
-	for _, answerReturn := range quizModels.AnswersReturnToRoot {
-		if strings.Contains(userInput, answerReturn) {
+	for _, answerReturnToRoot := range quizModels.AnswersReturnToRoot {
+		if strings.Contains(userInput, answerReturnToRoot) {
 			return quizModels.QuizRootID, nil
+		}
+	}
+
+	for _, answerQuitGame := range quizModels.AnswersQuitGame {
+		if strings.Contains(userInput, answerQuitGame) {
+			return quizModels.QuizQuitGame, nil
+		}
+	}
+
+	for _, helpQuestion := range help.CallHelp {
+		if strings.Contains(userInput, helpQuestion) {
+			return quizModels.QuizGetHelp, nil
 		}
 	}
 

@@ -12,11 +12,28 @@ var (
 		"не понял",
 	}
 
-	AnswersReturnToRoot = []string{
+	AnswersQuitGame = []string{
 		"закончи",
 		"прекрати",
 		"останови",
-		"в корень",
+	}
+
+	AnswersReturnToFirstQuestion = []string{
+		"сначала",
+		"заново",
+		"первый вопрос",
+	}
+
+	AnswersReturnToRoot = []string{
+		"выбрать тему",
+		"другая тема",
+		"другая",
+		"сменить тему",
+		"новая тема",
+		"сменить тест",
+		"новый тест",
+		"выбрать тест",
+		"выход",
 	}
 
 	AnswersPositional = map[string]int{
