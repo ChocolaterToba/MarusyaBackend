@@ -106,7 +106,9 @@ func (app *QuizApp) ProcessBasicRequest(input marusia.RequestBody) (response mar
 
 	case quizModels.QuizRootID: // When we are in root, nextQuestionID is question_id in db
 		return app.navToQuestionByID(userID, nextQuestionID, response.Text, false)
+	}
 
+	switch nextQuestionID {
 	case quizModels.QuizFirstQuestion:
 		firstQuestion, err := app.quizRepo.GetQuestionInTest(currentQuestion.TestID, 1)
 		if err != nil {
@@ -114,9 +116,11 @@ func (app *QuizApp) ProcessBasicRequest(input marusia.RequestBody) (response mar
 		}
 		response.Text = append(response.Text, quizModels.MsgStartOverTest)
 		return app.navToQuestion(userID, firstQuestion, response.Text, false)
+
 	case quizModels.QuizGetHelp:
 		response.Text = append(response.Text, help.MsgHelpMe)
 		return app.navToQuestion(userID, currentQuestion, response.Text, false)
+
 	case quizModels.QuizQuitGame:
 		return marusia.Response{
 			Text:       []string{authModels.MsgGoodBye},
