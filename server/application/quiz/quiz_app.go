@@ -92,11 +92,7 @@ func (app *QuizApp) ProcessBasicRequest(input marusia.RequestBody) (response mar
 			return marusia.Response{}, err
 		}
 
-		return marusia.Response{
-			Text:       []string{quizModels.MsgIncorrectInput, currentQuestion.Text},
-			Buttons:    marusia.ToButtons(getKeys(currentQuestion.NextQuestionIDs)),
-			EndSession: false,
-		}, nil
+		return app.navToQuestion(userID, currentQuestion, append(response.Text, quizModels.MsgIncorrectInput), true)
 	}
 
 	switch currentQuestionID {
@@ -172,6 +168,7 @@ func (app *QuizApp) navToQuestion(userID uint64, question quizModels.Question, p
 
 func getNextQuestionID(userInput string, question quizModels.Question) (nextQuestionID uint64, err error) {
 	userInput = strings.ToLower(userInput)
+	userInput = strings.TrimRight(userInput, ".?!")
 
 	// Searching for answers from db
 	lastMatch, found := getLastMatch(userInput, question.NextQuestionIDs)
@@ -233,7 +230,7 @@ func getLastMatch(userInput string, matches map[string]uint64) (resultMatch uint
 	lastMatch := ""
 	lastMatchIndex := -1
 	for key := range matches {
-		newMatchIndex := strings.LastIndex(userInput, strings.ToLower(key))
+		newMatchIndex := strings.LastIndex(userInput, strings.TrimRight(strings.ToLower(key), ".?!"))
 		if newMatchIndex > lastMatchIndex {
 			lastMatch = key
 			lastMatchIndex = newMatchIndex
