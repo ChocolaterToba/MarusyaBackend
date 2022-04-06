@@ -2,3 +2,4 @@
 /server/db.env
 .idea/
 /server/root.crt
+.vscode
