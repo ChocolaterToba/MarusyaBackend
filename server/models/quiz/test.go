@@ -11,5 +11,10 @@ type Question struct {
 	QuestionInTestID uint64
 	TestID           uint64
 	Text             string
-	NextQuestionIDs  map[string]uint64
+	Answers          map[string]Answer
+}
+
+type Answer struct {
+	NextQuestionID uint64 `json:"next_question_id"`
+	AnswerText     string `json:"answer_text"`
 }

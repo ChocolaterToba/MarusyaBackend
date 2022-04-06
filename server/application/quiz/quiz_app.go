@@ -82,11 +82,11 @@ func (app *QuizApp) ProcessBasicRequest(input marusia.RequestBody) (response mar
 	}
 
 	// this technically is not supposed to happen, just in case
-	if len(currentQuestion.NextQuestionIDs) == 0 { // No next questions => this question is the last one, go to root
+	if len(currentQuestion.Answers) == 0 { // No next questions => this question is the last one, go to root
 		return app.navToQuestionByID(userID, quizModels.QuizRootID, append(response.Text, currentQuestion.Text), false)
 	}
 
-	nextQuestionID, err := getNextQuestionID(input.Request.OriginalUtterance, currentQuestion)
+	answer, err := getFittingAnswer(input.Request.OriginalUtterance, currentQuestion)
 	if err != nil {
 		if err != quizModels.ErrNextQuestionNotFound {
 			return marusia.Response{}, err
@@ -96,15 +96,15 @@ func (app *QuizApp) ProcessBasicRequest(input marusia.RequestBody) (response mar
 	}
 
 	switch currentQuestionID {
-	case nextQuestionID: // If our destination is current question, we repeat it
+	case answer.NextQuestionID: // If our destination is current question, we repeat it
 		response.Text = append(response.Text, quizModels.MsgQuestionRepeat)
 		return app.navToQuestion(userID, currentQuestion, response.Text, true)
 
 	case quizModels.QuizRootID: // When we are in root, nextQuestionID is question_id in db
-		return app.navToQuestionByID(userID, nextQuestionID, response.Text, false)
+		return app.navToQuestionByID(userID, answer.NextQuestionID, response.Text, false)
 	}
 
-	switch nextQuestionID {
+	switch answer.NextQuestionID {
 	case quizModels.QuizFirstQuestion:
 		firstQuestion, err := app.quizRepo.GetQuestionInTest(currentQuestion.TestID, 1)
 		if err != nil {
@@ -126,16 +126,20 @@ func (app *QuizApp) ProcessBasicRequest(input marusia.RequestBody) (response mar
 	}
 
 	// When we are not in root, nextQuestionID is internal test id or root's id
-	if nextQuestionID == quizModels.QuizRootID { // root in not in any test and is handled separately
+	if answer.NextQuestionID == quizModels.QuizRootID { // root in not in any test and is handled separately
 		return app.navToQuestionByID(userID, quizModels.QuizRootID, response.Text, false)
 	}
 
-	nextQuestion, err := app.quizRepo.GetQuestionInTest(currentQuestion.TestID, nextQuestionID)
+	nextQuestion, err := app.quizRepo.GetQuestionInTest(currentQuestion.TestID, answer.NextQuestionID)
 	if err != nil {
 		return marusia.Response{}, err
 	}
 
-	if len(nextQuestion.NextQuestionIDs) == 0 { // No next questions => this question is the last one, go to root
+	if answer.AnswerText != "" {
+		response.Text = append(response.Text, answer.AnswerText)
+	}
+
+	if len(nextQuestion.Answers) == 0 { // No next questions => this question is the last one, go to root
 		return app.navToQuestionByID(userID, quizModels.QuizRootID, append(response.Text, nextQuestion.Text), false)
 	}
 
@@ -159,7 +163,7 @@ func (app *QuizApp) navToQuestion(userID uint64, question quizModels.Question, p
 		}
 	}
 
-	choices := getKeys(question.NextQuestionIDs)
+	choices := getKeysFromAnswers(question.Answers)
 	return marusia.Response{
 		Text:       appendChoices(append(prevText, question.Text), choices),
 		Buttons:    marusia.ToButtons(choices),
@@ -167,12 +171,12 @@ func (app *QuizApp) navToQuestion(userID uint64, question quizModels.Question, p
 	}, nil
 }
 
-func getNextQuestionID(userInput string, question quizModels.Question) (nextQuestionID uint64, err error) {
+func getFittingAnswer(userInput string, question quizModels.Question) (nextAnswer quizModels.Answer, err error) {
 	userInput = strings.ToLower(userInput)
 	userInput = strings.TrimRight(userInput, ".?!")
 
 	// Searching for answers from db
-	lastMatch, found := getLastMatch(userInput, question.NextQuestionIDs)
+	lastMatch, found := getLastMatch(userInput, question.Answers)
 	if found {
 		return lastMatch, nil
 	}
@@ -180,33 +184,33 @@ func getNextQuestionID(userInput string, question quizModels.Question) (nextQues
 	// searching for "repeat" and similar commands
 	for _, answerRepeat := range quizModels.AnswersRepeat {
 		if strings.Contains(userInput, answerRepeat) {
-			return question.QuestionID, nil
+			return quizModels.Answer{NextQuestionID: question.QuestionID}, nil
 		}
 	}
 
 	// searching for "start test again" and similar commands
 	for _, answerReturnToFirstQuestion := range quizModels.AnswersReturnToFirstQuestion {
 		if strings.Contains(userInput, answerReturnToFirstQuestion) {
-			return quizModels.QuizFirstQuestion, nil
+			return quizModels.Answer{NextQuestionID: quizModels.QuizFirstQuestion}, nil
 		}
 	}
 
 	// searching for "end test" and similar commands
 	for _, answerReturnToRoot := range quizModels.AnswersReturnToRoot {
 		if strings.Contains(userInput, answerReturnToRoot) {
-			return quizModels.QuizRootID, nil
+			return quizModels.Answer{NextQuestionID: quizModels.QuizRootID}, nil
 		}
 	}
 
 	for _, answerQuitGame := range quizModels.AnswersQuitGame {
 		if strings.Contains(userInput, answerQuitGame) {
-			return quizModels.QuizQuitGame, nil
+			return quizModels.Answer{NextQuestionID: quizModels.QuizQuitGame}, nil
 		}
 	}
 
 	for _, helpQuestion := range help.CallHelp {
 		if strings.Contains(userInput, helpQuestion) {
-			return quizModels.QuizGetHelp, nil
+			return quizModels.Answer{NextQuestionID: quizModels.QuizGetHelp}, nil
 		}
 	}
 
@@ -215,19 +219,19 @@ func getNextQuestionID(userInput string, question quizModels.Question) (nextQues
 	for i := len(userInputTokens) - 1; i >= 0; i-- {
 		pos, exists := quizModels.AnswersPositional[userInputTokens[i]]
 		if exists {
-			if pos >= len(question.NextQuestionIDs) {
-				return 0, quizModels.ErrNextQuestionNotFound
+			if pos >= len(question.Answers) {
+				return quizModels.Answer{}, quizModels.ErrNextQuestionNotFound
 			}
 
 			// if pos is valid, find corresponding answer
-			return question.NextQuestionIDs[getKeys(question.NextQuestionIDs)[pos]], nil
+			return question.Answers[getKeysFromAnswers(question.Answers)[pos]], nil
 		}
 	}
 
-	return 0, quizModels.ErrNextQuestionNotFound
+	return quizModels.Answer{}, quizModels.ErrNextQuestionNotFound
 }
 
-func getLastMatch(userInput string, matches map[string]uint64) (resultMatch uint64, found bool) {
+func getLastMatch(userInput string, matches map[string]quizModels.Answer) (resultAnswer quizModels.Answer, found bool) {
 	lastMatch := ""
 	lastMatchIndex := -1
 	for key := range matches {
@@ -242,10 +246,10 @@ func getLastMatch(userInput string, matches map[string]uint64) (resultMatch uint
 		return matches[lastMatch], true
 	}
 
-	return 0, false
+	return quizModels.Answer{}, false
 }
 
-func getKeys(input map[string]uint64) (keys []string) {
+func getKeysFromAnswers(input map[string]quizModels.Answer) (keys []string) {
 	keys = make([]string, 0, len(input))
 	for k := range input {
 		keys = append(keys, k)

@@ -76,10 +76,10 @@ func (repo *QuizRepo) GetQuestion(questionID uint64) (question quizModels.Questi
 					   FROM question
 					   WHERE question_id = $1`
 
-		nextQuestionIDs := make(cusjsonb)
+		answers := make(cusjsonb)
 		err = tx.QueryRow(query, questionID).Scan(
 			&question.QuestionID, &question.QuestionInTestID, &question.TestID,
-			&question.Text, &nextQuestionIDs,
+			&question.Text, &answers,
 		)
 		if err != nil {
 			if errors.Is(err, sql.ErrNoRows) {
@@ -87,7 +87,7 @@ func (repo *QuizRepo) GetQuestion(questionID uint64) (question quizModels.Questi
 			}
 			return fmt.Errorf("error in QuizRepo: could not get question by question_id: %s", err)
 		}
-		question.NextQuestionIDs = nextQuestionIDs
+		question.Answers = answers
 
 		return nil
 	})
@@ -101,10 +101,10 @@ func (repo *QuizRepo) GetQuestionInTest(testID uint64, questionInTestID uint64) 
 					   FROM question
 					   WHERE test_id = $1 and question_in_test_id = $2`
 
-		nextQuestionIDs := make(cusjsonb)
+		answers := make(cusjsonb)
 		err = tx.QueryRow(query, testID, questionInTestID).Scan(
 			&question.QuestionID, &question.QuestionInTestID, &question.TestID,
-			&question.Text, &nextQuestionIDs,
+			&question.Text, &answers,
 		)
 		if err != nil {
 			if errors.Is(err, sql.ErrNoRows) {
@@ -112,7 +112,7 @@ func (repo *QuizRepo) GetQuestionInTest(testID uint64, questionInTestID uint64) 
 			}
 			return fmt.Errorf("error in QuizRepo: could not get question by question_in_test_id: %s", err)
 		}
-		question.NextQuestionIDs = nextQuestionIDs
+		question.Answers = answers
 
 		return nil
 	})
@@ -120,7 +120,7 @@ func (repo *QuizRepo) GetQuestionInTest(testID uint64, questionInTestID uint64) 
 	return question, err
 }
 
-type cusjsonb map[string]uint64
+type cusjsonb map[string]quizModels.Answer
 
 // Decodes a JSON-encoded value
 func (a *cusjsonb) Scan(value interface{}) error {
@@ -129,7 +129,7 @@ func (a *cusjsonb) Scan(value interface{}) error {
 		return errors.New("type assertion to []byte failed")
 	}
 
-	// Unmarshal from json to map[string]uint64
+	// Unmarshal from json to map[string]quizModels.Answer
 	if err := json.Unmarshal(b, a); err != nil {
 		return err
 	}
