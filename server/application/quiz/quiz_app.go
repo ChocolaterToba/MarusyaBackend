@@ -175,6 +175,7 @@ func getFittingAnswer(userInput string, question quizModels.Question) (nextAnswe
 	userInput = strings.ToLower(userInput)
 	userInput = strings.TrimRight(userInput, ".?!")
 
+	fmt.Println("----------------------", question.Answers)
 	// Searching for answers from db
 	lastMatch, found := getLastMatch(userInput, question.Answers)
 	if found {
@@ -184,6 +185,7 @@ func getFittingAnswer(userInput string, question quizModels.Question) (nextAnswe
 	// searching for "repeat" and similar commands
 	for _, answerRepeat := range quizModels.AnswersRepeat {
 		if strings.Contains(userInput, answerRepeat) {
+			fmt.Println("////////////////////////////////////", question.Answers)
 			return quizModels.Answer{NextQuestionID: question.QuestionID}, nil
 		}
 	}
