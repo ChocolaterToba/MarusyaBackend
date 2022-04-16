@@ -96,7 +96,9 @@ func (app *QuizApp) ProcessBasicRequest(input marusia.RequestBody) (response mar
 	}
 
 	switch currentQuestionID {
-	case answer.NextQuestionID: // If our destination is current question, we repeat it
+	case answer.NextQuestionID: // If our destination is current question, we repeat it\		fmt.Println("----------------------1")
+		fmt.Println("----------------------0", answer.NextQuestionID,  currentQuestionID )
+
 		response.Text = append(response.Text, quizModels.MsgQuestionRepeat)
 		return app.navToQuestion(userID, currentQuestion, response.Text, true)
 
@@ -181,7 +183,7 @@ func getFittingAnswer(userInput string, question quizModels.Question) (nextAnswe
 	if found {
 		return lastMatch, nil
 	}
-
+	fmt.Println("----------------------1")
 	// searching for "repeat" and similar commands
 	for _, answerRepeat := range quizModels.AnswersRepeat {
 		if strings.Contains(userInput, answerRepeat) {
@@ -189,27 +191,28 @@ func getFittingAnswer(userInput string, question quizModels.Question) (nextAnswe
 			return quizModels.Answer{NextQuestionID: question.QuestionID}, nil
 		}
 	}
-
+	fmt.Println("----------------------2")
 	// searching for "start test again" and similar commands
 	for _, answerReturnToFirstQuestion := range quizModels.AnswersReturnToFirstQuestion {
 		if strings.Contains(userInput, answerReturnToFirstQuestion) {
 			return quizModels.Answer{NextQuestionID: quizModels.QuizFirstQuestion}, nil
 		}
 	}
-
+	fmt.Println("----------------------3")
 	// searching for "end test" and similar commands
 	for _, answerReturnToRoot := range quizModels.AnswersReturnToRoot {
 		if strings.Contains(userInput, answerReturnToRoot) {
 			return quizModels.Answer{NextQuestionID: quizModels.QuizRootID}, nil
 		}
 	}
+	fmt.Println("----------------------4")
 
 	for _, answerQuitGame := range quizModels.AnswersQuitGame {
 		if strings.Contains(userInput, answerQuitGame) {
 			return quizModels.Answer{NextQuestionID: quizModels.QuizQuitGame}, nil
 		}
 	}
-
+	fmt.Println("----------------------5")
 	for _, helpQuestion := range help.CallHelp {
 		if strings.Contains(userInput, helpQuestion) {
 			return quizModels.Answer{NextQuestionID: quizModels.QuizGetHelp}, nil
@@ -217,7 +220,7 @@ func getFittingAnswer(userInput string, question quizModels.Question) (nextAnswe
 	}
 
 	userInputTokens := strings.Fields(userInput)
-
+	fmt.Println("----------------------6")
 	for i := len(userInputTokens) - 1; i >= 0; i-- {
 		pos, exists := quizModels.AnswersPositional[userInputTokens[i]]
 		if exists {
