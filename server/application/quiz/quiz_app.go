@@ -95,35 +95,13 @@ func (app *QuizApp) ProcessBasicRequest(input marusia.RequestBody) (response mar
 		return app.navToQuestion(userID, currentQuestion, append(response.Text, quizModels.MsgIncorrectInput), true)
 	}
 
-	switch currentQuestionID {
-	case answer.NextQuestionID: // If our destination is current question, we repeat it
-		if isAbsoluteQuestionID {
-			response.Text = append(response.Text, quizModels.MsgQuestionRepeat)
-			return app.navToQuestion(userID, currentQuestion, response.Text, true)
-		}
-	case quizModels.QuizRootID: // When we are in root, nextQuestionID is question_id in db
-		return app.navToQuestionByID(userID, answer.NextQuestionID, response.Text, false)
+	if isAbsoluteQuestionID {
+		return app.processAbsoluteQuestionID(userID, currentQuestion, response.Text, answer.NextQuestionID)
 	}
 
-	switch answer.NextQuestionID {
-	case quizModels.QuizFirstQuestion:
-		firstQuestion, err := app.quizRepo.GetQuestionInTest(currentQuestion.TestID, 1)
-		if err != nil {
-			return marusia.Response{}, err
-		}
-		response.Text = append(response.Text, quizModels.MsgStartOverTest)
-		return app.navToQuestion(userID, firstQuestion, response.Text, false)
-
-	case quizModels.QuizGetHelp:
-		response.Text = append(response.Text, help.MsgHelpMe)
-		return app.navToQuestion(userID, currentQuestion, response.Text, false)
-
-	case quizModels.QuizQuitGame:
-		// TODO: add logout here?
-		return marusia.Response{
-			Text:       []string{authModels.MsgGoodBye},
-			EndSession: true,
-		}, nil
+	// When we are in root, nextQuestionID is question_id in db
+	if currentQuestionID == quizModels.QuizRootID {
+		return app.navToQuestionByID(userID, answer.NextQuestionID, response.Text, false)
 	}
 
 	// When we are not in root, nextQuestionID is internal test id or root's id
@@ -145,6 +123,39 @@ func (app *QuizApp) ProcessBasicRequest(input marusia.RequestBody) (response mar
 	}
 
 	return app.navToQuestion(userID, nextQuestion, response.Text, false)
+}
+
+func (app *QuizApp) processAbsoluteQuestionID(userID uint64, currentQuestion quizModels.Question, prevText []string, nextQuestionID uint64) (response marusia.Response, err error) {
+	switch nextQuestionID {
+	case quizModels.QuizRepeatLastMessage:
+		response.Text = append(response.Text, quizModels.MsgQuestionRepeat)
+		return app.navToQuestion(userID, currentQuestion, response.Text, true)
+
+	case quizModels.QuizFirstQuestion:
+		firstQuestion, err := app.quizRepo.GetQuestionInTest(currentQuestion.TestID, 1)
+		if err != nil {
+			return marusia.Response{}, err
+		}
+		response.Text = append(response.Text, quizModels.MsgStartOverTest)
+		return app.navToQuestion(userID, firstQuestion, response.Text, false)
+
+	case quizModels.QuizGetHelp:
+		response.Text = append(response.Text, help.MsgHelpMe)
+		return app.navToQuestion(userID, currentQuestion, response.Text, false)
+
+	case quizModels.QuizQuitGame:
+		// TODO: add logout here?
+		return marusia.Response{
+			Text:       []string{authModels.MsgGoodBye},
+			EndSession: true,
+		}, nil
+
+	default:
+		return marusia.Response{
+			Text:       []string{quizModels.ErrNextQuestionNotFound.Error()},
+			EndSession: true,
+		}, nil
+	}
 }
 
 func (app *QuizApp) navToQuestionByID(userID uint64, questionID uint64, prevText []string, isLoop bool) (response marusia.Response, err error) {
@@ -185,33 +196,33 @@ func getFittingAnswer(userInput string, question quizModels.Question) (nextAnswe
 	// searching for "repeat" and similar commands
 	for _, answerRepeat := range quizModels.AnswersRepeat {
 		if strings.Contains(userInput, answerRepeat) {
-			return quizModels.Answer{NextQuestionID: question.QuestionID}, true, nil
+			return quizModels.Answer{NextQuestionID: quizModels.QuizRepeatLastMessage}, true, nil
 		}
 	}
 
 	// searching for "start test again" and similar commands
 	for _, answerReturnToFirstQuestion := range quizModels.AnswersReturnToFirstQuestion {
 		if strings.Contains(userInput, answerReturnToFirstQuestion) {
-			return quizModels.Answer{NextQuestionID: quizModels.QuizFirstQuestion}, false, nil
+			return quizModels.Answer{NextQuestionID: quizModels.QuizFirstQuestion}, true, nil
 		}
 	}
 
 	// searching for "end test" and similar commands
 	for _, answerReturnToRoot := range quizModels.AnswersReturnToRoot {
 		if strings.Contains(userInput, answerReturnToRoot) {
-			return quizModels.Answer{NextQuestionID: quizModels.QuizRootID}, false, nil
+			return quizModels.Answer{NextQuestionID: quizModels.QuizRootID}, true, nil
 		}
 	}
 
 	for _, answerQuitGame := range quizModels.AnswersQuitGame {
 		if strings.Contains(userInput, answerQuitGame) {
-			return quizModels.Answer{NextQuestionID: quizModels.QuizQuitGame}, false, nil
+			return quizModels.Answer{NextQuestionID: quizModels.QuizQuitGame}, true, nil
 		}
 	}
 
 	for _, helpQuestion := range help.CallHelp {
 		if strings.Contains(userInput, helpQuestion) {
-			return quizModels.Answer{NextQuestionID: quizModels.QuizGetHelp}, false, nil
+			return quizModels.Answer{NextQuestionID: quizModels.QuizGetHelp}, true, nil
 		}
 	}
 
@@ -225,11 +236,11 @@ func getFittingAnswer(userInput string, question quizModels.Question) (nextAnswe
 			}
 
 			// if pos is valid, find corresponding answer
-			return question.Answers[getKeysFromAnswers(question.Answers)[pos]], false,nil
+			return question.Answers[getKeysFromAnswers(question.Answers)[pos]], false, nil
 		}
 	}
 
-	return quizModels.Answer{}, false, quizModels.ErrNextQuestionNotFound
+	return quizModels.Answer{}, true, quizModels.ErrNextQuestionNotFound
 }
 
 func getLastMatch(userInput string, matches map[string]quizModels.Answer) (resultAnswer quizModels.Answer, found bool) {
