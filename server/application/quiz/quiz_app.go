@@ -241,6 +241,15 @@ func getLastMatch(userInput string, matches map[string]quizModels.Answer) (resul
 			lastMatch = key
 			lastMatchIndex = newMatchIndex
 		}
+
+		if strings.Contains(userInput, quizModels.ParticleNot) && !strings.Contains(key, quizModels.ParticleNot) {
+			lastMatchIndex = -1
+			newMatchIndex = strings.Index(userInput, strings.TrimRight(strings.ToLower(key), ".?!"))
+			if newMatchIndex > lastMatchIndex {
+				lastMatch = key
+				lastMatchIndex = newMatchIndex
+			}
+		}
 	}
 
 	if lastMatch != "" {
