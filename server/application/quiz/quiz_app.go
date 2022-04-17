@@ -86,7 +86,7 @@ func (app *QuizApp) ProcessBasicRequest(input marusia.RequestBody) (response mar
 		return app.navToQuestionByID(userID, quizModels.QuizRootID, append(response.Text, currentQuestion.Text), false)
 	}
 
-	answer, err := getFittingAnswer(input.Request.OriginalUtterance, currentQuestion)
+	answer, isAbsoluteQuestionID, err := getFittingAnswer(input.Request.OriginalUtterance, currentQuestion)
 	if err != nil {
 		if err != quizModels.ErrNextQuestionNotFound {
 			return marusia.Response{}, err
@@ -96,12 +96,12 @@ func (app *QuizApp) ProcessBasicRequest(input marusia.RequestBody) (response mar
 	}
 
 	switch currentQuestionID {
-	case answer.NextQuestionID: // If our destination is current question, we repeat it\		fmt.Println("----------------------1")
-		fmt.Println("----------------------0", answer.NextQuestionID,  currentQuestionID )
+	case answer.NextQuestionID: // If our destination is current question, we repeat it
+		if !isAbsoluteQuestionID {
 
-		response.Text = append(response.Text, quizModels.MsgQuestionRepeat)
-		return app.navToQuestion(userID, currentQuestion, response.Text, true)
-
+			response.Text = append(response.Text, quizModels.MsgQuestionRepeat)
+			return app.navToQuestion(userID, currentQuestion, response.Text, true)
+		}
 	case quizModels.QuizRootID: // When we are in root, nextQuestionID is question_id in db
 		return app.navToQuestionByID(userID, answer.NextQuestionID, response.Text, false)
 	}
@@ -173,67 +173,64 @@ func (app *QuizApp) navToQuestion(userID uint64, question quizModels.Question, p
 	}, nil
 }
 
-func getFittingAnswer(userInput string, question quizModels.Question) (nextAnswer quizModels.Answer, err error) {
+func getFittingAnswer(userInput string, question quizModels.Question) (nextAnswer quizModels.Answer, isAbsolute bool, err error) {
 	userInput = strings.ToLower(userInput)
 	userInput = strings.TrimRight(userInput, ".?!")
 
-	fmt.Println("----------------------", question.Answers)
 	// Searching for answers from db
 	lastMatch, found := getLastMatch(userInput, question.Answers)
 	if found {
-		return lastMatch, nil
+		return lastMatch, false, nil
 	}
-	fmt.Println("----------------------1")
+
 	// searching for "repeat" and similar commands
 	for _, answerRepeat := range quizModels.AnswersRepeat {
 		if strings.Contains(userInput, answerRepeat) {
-			fmt.Println("////////////////////////////////////", question.Answers)
-			return quizModels.Answer{NextQuestionID: question.QuestionID}, nil
+			return quizModels.Answer{NextQuestionID: question.QuestionID}, true, nil
 		}
 	}
-	fmt.Println("----------------------2")
+
 	// searching for "start test again" and similar commands
 	for _, answerReturnToFirstQuestion := range quizModels.AnswersReturnToFirstQuestion {
 		if strings.Contains(userInput, answerReturnToFirstQuestion) {
-			return quizModels.Answer{NextQuestionID: quizModels.QuizFirstQuestion}, nil
+			return quizModels.Answer{NextQuestionID: quizModels.QuizFirstQuestion}, false, nil
 		}
 	}
-	fmt.Println("----------------------3")
+
 	// searching for "end test" and similar commands
 	for _, answerReturnToRoot := range quizModels.AnswersReturnToRoot {
 		if strings.Contains(userInput, answerReturnToRoot) {
-			return quizModels.Answer{NextQuestionID: quizModels.QuizRootID}, nil
+			return quizModels.Answer{NextQuestionID: quizModels.QuizRootID}, false, nil
 		}
 	}
-	fmt.Println("----------------------4")
 
 	for _, answerQuitGame := range quizModels.AnswersQuitGame {
 		if strings.Contains(userInput, answerQuitGame) {
-			return quizModels.Answer{NextQuestionID: quizModels.QuizQuitGame}, nil
+			return quizModels.Answer{NextQuestionID: quizModels.QuizQuitGame}, false, nil
 		}
 	}
-	fmt.Println("----------------------5")
+
 	for _, helpQuestion := range help.CallHelp {
 		if strings.Contains(userInput, helpQuestion) {
-			return quizModels.Answer{NextQuestionID: quizModels.QuizGetHelp}, nil
+			return quizModels.Answer{NextQuestionID: quizModels.QuizGetHelp}, false, nil
 		}
 	}
 
 	userInputTokens := strings.Fields(userInput)
-	fmt.Println("----------------------6")
+
 	for i := len(userInputTokens) - 1; i >= 0; i-- {
 		pos, exists := quizModels.AnswersPositional[userInputTokens[i]]
 		if exists {
 			if pos >= len(question.Answers) {
-				return quizModels.Answer{}, quizModels.ErrNextQuestionNotFound
+				return quizModels.Answer{}, false, quizModels.ErrNextQuestionNotFound
 			}
 
 			// if pos is valid, find corresponding answer
-			return question.Answers[getKeysFromAnswers(question.Answers)[pos]], nil
+			return question.Answers[getKeysFromAnswers(question.Answers)[pos]], false,nil
 		}
 	}
 
-	return quizModels.Answer{}, quizModels.ErrNextQuestionNotFound
+	return quizModels.Answer{}, false, quizModels.ErrNextQuestionNotFound
 }
 
 func getLastMatch(userInput string, matches map[string]quizModels.Answer) (resultAnswer quizModels.Answer, found bool) {
