@@ -35,6 +35,7 @@ var (
 		"сменить тест",
 		"новый тест",
 		"выход",
+		"выйди",
 	}
 
 	AnswersPositional = map[string]int{
