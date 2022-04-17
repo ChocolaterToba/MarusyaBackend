@@ -97,8 +97,7 @@ func (app *QuizApp) ProcessBasicRequest(input marusia.RequestBody) (response mar
 
 	switch currentQuestionID {
 	case answer.NextQuestionID: // If our destination is current question, we repeat it
-		if !isAbsoluteQuestionID {
-
+		if isAbsoluteQuestionID {
 			response.Text = append(response.Text, quizModels.MsgQuestionRepeat)
 			return app.navToQuestion(userID, currentQuestion, response.Text, true)
 		}
