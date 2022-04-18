@@ -156,7 +156,7 @@ func (app *QuizApp) processAbsoluteQuestionID(userID uint64, currentQuestion qui
 	default:
 		return marusia.Response{
 			Text:       []string{quizModels.ErrNextQuestionNotFound.Error()},
-			EndSession: true,
+			EndSession: false,
 		}, nil
 	}
 }
