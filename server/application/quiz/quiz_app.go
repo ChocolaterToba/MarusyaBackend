@@ -86,7 +86,7 @@ func (app *QuizApp) ProcessBasicRequest(input marusia.RequestBody) (response mar
 		return app.navToQuestionByID(userID, quizModels.QuizRootID, append(response.Text, currentQuestion.Text), false)
 	}
 
-	answer, isAbsoluteQuestionID, err := getFittingAnswer(input.Request.OriginalUtterance, currentQuestion)
+	answer, isTypicalNavigation, err := getFittingAnswer(input.Request.OriginalUtterance, currentQuestion)
 	if err != nil {
 		if err != quizModels.ErrNextQuestionNotFound {
 			return marusia.Response{}, err
@@ -95,7 +95,7 @@ func (app *QuizApp) ProcessBasicRequest(input marusia.RequestBody) (response mar
 		return app.navToQuestion(userID, currentQuestion, append(response.Text, quizModels.MsgIncorrectInput), true)
 	}
 
-	if isAbsoluteQuestionID {
+	if !isTypicalNavigation {
 		return app.processAbsoluteQuestionID(userID, currentQuestion, response.Text, answer.NextQuestionID)
 	}
 
@@ -143,6 +143,9 @@ func (app *QuizApp) processAbsoluteQuestionID(userID uint64, currentQuestion qui
 		response.Text = append(response.Text, help.MsgHelpMe)
 		return app.navToQuestion(userID, currentQuestion, response.Text, false)
 
+	case quizModels.QuizRootID:
+		return app.navToQuestionByID(userID, quizModels.QuizRootID, response.Text, false)
+
 	case quizModels.QuizQuitGame:
 		// TODO: add logout here?
 		return marusia.Response{
@@ -183,46 +186,46 @@ func (app *QuizApp) navToQuestion(userID uint64, question quizModels.Question, p
 	}, nil
 }
 
-func getFittingAnswer(userInput string, question quizModels.Question) (nextAnswer quizModels.Answer, isAbsolute bool, err error) {
+func getFittingAnswer(userInput string, question quizModels.Question) (nextAnswer quizModels.Answer, isTypicalNavigation bool, err error) {
 	userInput = strings.ToLower(userInput)
 	userInput = strings.TrimRight(userInput, ".?!")
 
 	// Searching for answers from db
 	lastMatch, found := getLastMatch(userInput, question.Answers)
 	if found {
-		return lastMatch, false, nil
+		return lastMatch, true, nil
 	}
 
 	// searching for "repeat" and similar commands
 	for _, answerRepeat := range quizModels.AnswersRepeat {
 		if strings.Contains(userInput, answerRepeat) {
-			return quizModels.Answer{NextQuestionID: quizModels.QuizRepeatLastMessage}, true, nil
+			return quizModels.Answer{NextQuestionID: quizModels.QuizRepeatLastMessage}, false, nil
 		}
 	}
 
 	// searching for "start test again" and similar commands
 	for _, answerReturnToFirstQuestion := range quizModels.AnswersReturnToFirstQuestion {
 		if strings.Contains(userInput, answerReturnToFirstQuestion) {
-			return quizModels.Answer{NextQuestionID: quizModels.QuizFirstQuestion}, true, nil
+			return quizModels.Answer{NextQuestionID: quizModels.QuizFirstQuestion}, false, nil
 		}
 	}
 
 	// searching for "end test" and similar commands
 	for _, answerReturnToRoot := range quizModels.AnswersReturnToRoot {
 		if strings.Contains(userInput, answerReturnToRoot) {
-			return quizModels.Answer{NextQuestionID: quizModels.QuizRootID}, true, nil
+			return quizModels.Answer{NextQuestionID: quizModels.QuizRootID}, false, nil
 		}
 	}
 
 	for _, answerQuitGame := range quizModels.AnswersQuitGame {
 		if strings.Contains(userInput, answerQuitGame) {
-			return quizModels.Answer{NextQuestionID: quizModels.QuizQuitGame}, true, nil
+			return quizModels.Answer{NextQuestionID: quizModels.QuizQuitGame}, false, nil
 		}
 	}
 
 	for _, helpQuestion := range help.CallHelp {
 		if strings.Contains(userInput, helpQuestion) {
-			return quizModels.Answer{NextQuestionID: quizModels.QuizGetHelp}, true, nil
+			return quizModels.Answer{NextQuestionID: quizModels.QuizGetHelp}, false, nil
 		}
 	}
 
@@ -236,11 +239,11 @@ func getFittingAnswer(userInput string, question quizModels.Question) (nextAnswe
 			}
 
 			// if pos is valid, find corresponding answer
-			return question.Answers[getKeysFromAnswers(question.Answers)[pos]], false, nil
+			return question.Answers[getKeysFromAnswers(question.Answers)[pos]], true, nil
 		}
 	}
 
-	return quizModels.Answer{}, true, quizModels.ErrNextQuestionNotFound
+	return quizModels.Answer{}, false, quizModels.ErrNextQuestionNotFound
 }
 
 func getLastMatch(userInput string, matches map[string]quizModels.Answer) (resultAnswer quizModels.Answer, found bool) {
