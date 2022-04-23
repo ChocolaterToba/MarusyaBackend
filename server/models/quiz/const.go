@@ -5,6 +5,7 @@ const (
 	MsgSelectQuiz     = "Выбери, какой тест хочешь пройти."
 	MsgQuestionRepeat = "Повторяю"
 	MsgStartOverTest  = "Хорошо, начнём тест сначала."
+	MsgBackToQuestionInTest  = "Хорошо, вернёмся на %d вопрос."
 
 	ParticleNot = "не "
 )

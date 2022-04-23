@@ -114,6 +114,9 @@ func (app *QuizApp) ProcessBasicRequest(input marusia.RequestBody) (response mar
 		return marusia.Response{}, err
 	}
 
+	if answer.NextQuestionID < currentQuestion.QuestionInTestID {
+		response.Text = append(response.Text, fmt.Sprintf(quizModels.MsgBackToQuestionInTest, answer.NextQuestionID))
+	}
 	if answer.AnswerText != "" {
 		response.Text = append(response.Text, answer.AnswerText)
 	}
@@ -218,15 +221,17 @@ func getFittingAnswer(userInput string, question quizModels.Question) (nextAnswe
 	}
 
 	// return to n questions back
-	for _, BackToQuestion := range quizModels.AnswersBackToQuestion {
-		if strings.Contains(userInput, BackToQuestion) {
-			for word, pos := range quizModels.AnswersPositional {
-				if strings.Contains(userInput, word) {
-					questionInTest := int(question.QuestionInTestID) - pos - 1
-					if questionInTest < 1 {
-						questionInTest = 1
+	if question.QuestionID != quizModels.QuizRootID {
+		for _, BackToQuestion := range quizModels.AnswersBackToQuestion {
+			if strings.Contains(userInput, BackToQuestion) {
+				for word, pos := range quizModels.AnswersIntTestPositional {
+					if strings.Contains(userInput, word) {
+						questionInTest := int(question.QuestionInTestID) - pos
+						if questionInTest < 1 {
+							questionInTest = 1
+						}
+						return quizModels.Answer{NextQuestionID: uint64(questionInTest)}, true, nil
 					}
-					return quizModels.Answer{NextQuestionID: uint64(questionInTest)}, true, nil
 				}
 			}
 		}
