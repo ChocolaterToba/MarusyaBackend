@@ -115,7 +115,7 @@ func (app *QuizApp) ProcessBasicRequest(input marusia.RequestBody) (response mar
 	}
 
 	if answer.NextQuestionID < currentQuestion.QuestionInTestID {
-		response.Text = append(response.Text, fmt.Sprintf(quizModels.MsgBackToQuestionInTest, answer.NextQuestionID))
+		response.Text = append(response.Text, fmt.Sprintf(quizModels.MsgBackToQuestionInTest, quizModels.QuestionPosition[answer.NextQuestionID]))
 	}
 	if answer.AnswerText != "" {
 		response.Text = append(response.Text, answer.AnswerText)
