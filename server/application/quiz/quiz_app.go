@@ -222,11 +222,10 @@ func getFittingAnswer(userInput string, question quizModels.Question) (nextAnswe
 		if strings.Contains(userInput, BackToQuestion) {
 			for word, pos := range quizModels.AnswersPositional {
 				if strings.Contains(userInput, word) {
-					questionInTest := int(question.QuestionInTestID) - pos
+					questionInTest := int(question.QuestionInTestID) - pos - 1
 					if questionInTest < 1 {
 						questionInTest = 1
 					}
-					fmt.Println(userInput, "-------------------------")
 					return quizModels.Answer{NextQuestionID: uint64(questionInTest)}, true, nil
 				}
 			}
