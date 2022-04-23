@@ -226,7 +226,8 @@ func getFittingAnswer(userInput string, question quizModels.Question) (nextAnswe
 					if questionInTest < 1 {
 						questionInTest = 1
 					}
-					return quizModels.Answer{NextQuestionID: uint64(questionInTest)}, false, nil
+					fmt.Println(userInput, "-------------------------")
+					return quizModels.Answer{NextQuestionID: uint64(questionInTest)}, true, nil
 				}
 			}
 		}
