@@ -34,12 +34,19 @@ func (repo *QuizRepo) GetPastQuestions(userID uint64) (questionIDs []uint64, err
 					   FROM account
 					   WHERE user_id = $1`
 
-		err = tx.QueryRow(query, userID).Scan(pq.Array(&questionIDs))
+		var result pq.Int64Array
+
+		err = tx.QueryRow(query, userID).Scan(&result)
 		if err != nil {
 			if errors.Is(err, sql.ErrNoRows) {
 				return quizModels.ErrCurrentQuestionNotFound
 			}
-			return fmt.Errorf("error in QuizRepo: could not get currect quiestion ID: %s", err)
+			return fmt.Errorf("error in QuizRepo: could not get past question IDs: %s", err)
+		}
+
+		questionIDs = make([]uint64, 0, len(result))
+		for _, id := range result {
+			questionIDs = append(questionIDs, uint64(id))
 		}
 		return nil
 	})
