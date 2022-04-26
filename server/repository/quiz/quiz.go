@@ -55,7 +55,7 @@ func (repo *QuizRepo) SetCurrentQuestionID(userID uint64, questionID uint64) (er
 
 		if questionID == quizModels.QuizRootID {
 			query = `UPDATE account
-					 SET past_questions = '{$2}'
+					 SET past_questions = array_append('{}', $2)
 					 WHERE user_id = $1`
 		}
 
