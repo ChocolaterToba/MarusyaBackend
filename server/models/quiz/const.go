@@ -11,11 +11,12 @@ const (
 )
 
 const (
-	QuizGetHelp           = 1000000
-	QuizFirstQuestion     = 1000001
-	QuizQuitGame          = 1000002
-	QuizRepeatLastMessage = 1000003
-	QuizRootID            = 0
+	QuizGetHelp             = 1000000
+	QuizFirstQuestion       = 1000001
+	QuizQuitGame            = 1000002
+	QuizRepeatLastMessage   = 1000003
+	QuizReturnByOneQuestion = 1000004
+	QuizRootID              = 0
 )
 
 var (

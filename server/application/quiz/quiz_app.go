@@ -90,7 +90,7 @@ func (app *QuizApp) ProcessBasicRequest(input marusia.RequestBody) (response mar
 		return app.navToQuestionByID(userID, quizModels.QuizRootID, append(response.Text, currentQuestion.Text), false)
 	}
 
-	answer, isTypicalNavigation, err := getFittingAnswer(input.Request.OriginalUtterance, pastQuestions, currentQuestion)
+	answer, isTypicalNavigation, err := getFittingAnswer(input.Request.OriginalUtterance, currentQuestion)
 	if err != nil {
 		if err != quizModels.ErrNextQuestionNotFound {
 			return marusia.Response{}, err
@@ -100,7 +100,7 @@ func (app *QuizApp) ProcessBasicRequest(input marusia.RequestBody) (response mar
 	}
 
 	if !isTypicalNavigation {
-		return app.processAbsoluteQuestionID(userID, currentQuestion, response.Text, answer.NextQuestionID)
+		return app.processAbsoluteQuestionID(userID, pastQuestions, currentQuestion, response.Text, answer.NextQuestionID)
 	}
 
 	// When we are in root, nextQuestionID is question_id in db
@@ -136,7 +136,7 @@ func (app *QuizApp) ProcessBasicRequest(input marusia.RequestBody) (response mar
 	return app.navToQuestion(userID, nextQuestion, response.Text, false)
 }
 
-func (app *QuizApp) processAbsoluteQuestionID(userID uint64, currentQuestion quizModels.Question, prevText []string, nextQuestionID uint64) (response marusia.Response, err error) {
+func (app *QuizApp) processAbsoluteQuestionID(userID uint64, pastQuestionIDs []uint64, currentQuestion quizModels.Question, prevText []string, nextQuestionID uint64) (response marusia.Response, err error) {
 	switch nextQuestionID {
 	case quizModels.QuizRepeatLastMessage:
 		response.Text = append(response.Text, quizModels.MsgQuestionRepeat)
@@ -164,11 +164,14 @@ func (app *QuizApp) processAbsoluteQuestionID(userID uint64, currentQuestion qui
 			EndSession: true,
 		}, nil
 
+	case quizModels.QuizReturnByOneQuestion:
+		if len(pastQuestionIDs) > 1 {
+			pastQuestionIDs = pastQuestionIDs[:len(pastQuestionIDs)-1]
+		}
+		return app.navToQuestionByID(userID, pastQuestionIDs[len(pastQuestionIDs)-1], response.Text, false)
+
 	default:
-		return marusia.Response{
-			Text:       []string{quizModels.ErrNextQuestionNotFound.Error()},
-			EndSession: false,
-		}, nil
+		return app.navToQuestionByID(userID, nextQuestionID, response.Text, false)
 	}
 }
 
@@ -197,7 +200,7 @@ func (app *QuizApp) navToQuestion(userID uint64, question quizModels.Question, p
 	}, nil
 }
 
-func getFittingAnswer(userInput string, pastQuestionIDs []uint64, question quizModels.Question) (nextAnswer quizModels.Answer, isTypicalNavigation bool, err error) {
+func getFittingAnswer(userInput string, question quizModels.Question) (nextAnswer quizModels.Answer, isTypicalNavigation bool, err error) {
 	userInput = strings.ToLower(userInput)
 	userInput = strings.TrimRight(userInput, ".?!")
 
@@ -228,16 +231,9 @@ func getFittingAnswer(userInput string, pastQuestionIDs []uint64, question quizM
 		}
 	}
 
-	// return to n questions back
-	if question.QuestionID != quizModels.QuizRootID {
-		for _, BackToQuestion := range quizModels.AnswersBackToQuestion {
-			if strings.Contains(userInput, BackToQuestion) {
-				if len(pastQuestionIDs) > 1 {
-					pastQuestionIDs = pastQuestionIDs[:len(pastQuestionIDs)-1]
-				}
-
-				return quizModels.Answer{NextQuestionID: pastQuestionIDs[len(pastQuestionIDs)-1]}, false, nil
-			}
+	for _, answerBackToQuestion := range quizModels.AnswersBackToQuestion {
+		if strings.Contains(userInput, answerBackToQuestion) {
+			return quizModels.Answer{NextQuestionID: quizModels.QuizReturnByOneQuestion}, false, nil
 		}
 	}
 
