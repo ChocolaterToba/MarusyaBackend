@@ -210,17 +210,17 @@ func getFittingAnswer(userInput string, question quizModels.Question) (nextAnswe
 		return lastMatch, true, nil
 	}
 
-	// searching for "repeat" and similar commands
-	for _, answerRepeat := range quizModels.AnswersRepeat {
-		if strings.Contains(userInput, answerRepeat) {
-			return quizModels.Answer{NextQuestionID: quizModels.QuizRepeatLastMessage}, false, nil
-		}
-	}
-
 	// searching for "start test again" and similar commands
 	for _, answerReturnToFirstQuestion := range quizModels.AnswersReturnToFirstQuestion {
 		if strings.Contains(userInput, answerReturnToFirstQuestion) {
 			return quizModels.Answer{NextQuestionID: quizModels.QuizFirstQuestion}, false, nil
+		}
+	}
+
+	// searching for "repeat" and similar commands
+	for _, answerRepeat := range quizModels.AnswersRepeat {
+		if strings.Contains(userInput, answerRepeat) {
+			return quizModels.Answer{NextQuestionID: quizModels.QuizRepeatLastMessage}, false, nil
 		}
 	}
 
@@ -231,6 +231,7 @@ func getFittingAnswer(userInput string, question quizModels.Question) (nextAnswe
 		}
 	}
 
+	// searching for "previous question" and similar commands
 	for _, answerBackToQuestion := range quizModels.AnswersBackToQuestion {
 		if strings.Contains(userInput, answerBackToQuestion) {
 			return quizModels.Answer{NextQuestionID: quizModels.QuizReturnByOneQuestion}, false, nil
