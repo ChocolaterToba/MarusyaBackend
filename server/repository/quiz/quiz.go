@@ -9,10 +9,12 @@ import (
 
 	"database/sql"
 	"fmt"
+
+	"github.com/lib/pq"
 )
 
 type QuizRepoInterface interface {
-	GetCurrentQuestionID(userID uint64) (questionID uint64, err error)
+	GetPastQuestions(userID uint64) (questionIDs []uint64, err error)
 	SetCurrentQuestionID(userID uint64, questionID uint64) (err error)
 	GetQuestion(questionID uint64) (question quizModels.Question, err error)
 	GetQuestionInTest(testID uint64, questionInTestID uint64) (question quizModels.Question, err error)
@@ -26,30 +28,43 @@ func NewQuizRepo(conn adapter.Adapter) *QuizRepo {
 	return &QuizRepo{conn: conn}
 }
 
-func (repo *QuizRepo) GetCurrentQuestionID(userID uint64) (questionID uint64, err error) {
+func (repo *QuizRepo) GetPastQuestions(userID uint64) (questionIDs []uint64, err error) {
 	err = repo.conn.InTx(func(tx *sql.Tx) error {
-		const query = `SELECT current_question_id
+		const query = `SELECT past_questions
 					   FROM account
 					   WHERE user_id = $1`
 
-		err = tx.QueryRow(query, userID).Scan(&questionID)
+		var result pq.Int64Array
+
+		err = tx.QueryRow(query, userID).Scan(&result)
 		if err != nil {
 			if errors.Is(err, sql.ErrNoRows) {
 				return quizModels.ErrCurrentQuestionNotFound
 			}
-			return fmt.Errorf("error in QuizRepo: could not get currect quiestion ID: %s", err)
+			return fmt.Errorf("error in QuizRepo: could not get past question IDs: %s", err)
+		}
+
+		questionIDs = make([]uint64, 0, len(result))
+		for _, id := range result {
+			questionIDs = append(questionIDs, uint64(id))
 		}
 		return nil
 	})
 
-	return questionID, err
+	return questionIDs, err
 }
 
 func (repo *QuizRepo) SetCurrentQuestionID(userID uint64, questionID uint64) (err error) {
 	err = repo.conn.InTx(func(tx *sql.Tx) error {
-		const query = `UPDATE account
-					   SET current_question_id = $2
-					   WHERE user_id = $1`
+		query := `UPDATE account
+				  SET past_questions = array_append(past_questions, $2)
+				  WHERE user_id = $1`
+
+		if questionID == quizModels.QuizRootID {
+			query = `UPDATE account
+					 SET past_questions = array_append('{}'::numeric[], $2)
+					 WHERE user_id = $1`
+		}
 
 		result, err := tx.Exec(query, userID, questionID)
 		if err != nil {

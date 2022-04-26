@@ -44,10 +44,12 @@ func (app *QuizApp) ProcessBasicRequest(input marusia.RequestBody) (response mar
 			return marusia.Response{}, err
 		}
 
-		currentQuestionID, err := app.quizRepo.GetCurrentQuestionID(userID)
+		pastQuestions, err := app.quizRepo.GetPastQuestions(userID)
 		if err != nil {
 			return marusia.Response{}, err
 		}
+
+		currentQuestionID := pastQuestions[len(pastQuestions)-1]
 
 		return app.navToQuestionByID(userID, currentQuestionID, response.Text, false)
 	}
@@ -71,10 +73,12 @@ func (app *QuizApp) ProcessBasicRequest(input marusia.RequestBody) (response mar
 		return marusia.Response{}, err
 	}
 
-	currentQuestionID, err := app.quizRepo.GetCurrentQuestionID(userID)
+	pastQuestions, err := app.quizRepo.GetPastQuestions(userID)
 	if err != nil {
 		return marusia.Response{}, err
 	}
+
+	currentQuestionID := pastQuestions[len(pastQuestions)-1]
 
 	currentQuestion, err := app.quizRepo.GetQuestion(currentQuestionID)
 	if err != nil {
@@ -96,7 +100,7 @@ func (app *QuizApp) ProcessBasicRequest(input marusia.RequestBody) (response mar
 	}
 
 	if !isTypicalNavigation {
-		return app.processAbsoluteQuestionID(userID, currentQuestion, response.Text, answer.NextQuestionID)
+		return app.processAbsoluteQuestionID(userID, pastQuestions, currentQuestion, response.Text, answer.NextQuestionID)
 	}
 
 	// When we are in root, nextQuestionID is question_id in db
@@ -116,7 +120,7 @@ func (app *QuizApp) ProcessBasicRequest(input marusia.RequestBody) (response mar
 
 	if answer.NextQuestionID < currentQuestion.QuestionInTestID {
 		previousQuestionID := answer.NextQuestionID
-		if currentQuestion.QuestionInTestID - previousQuestionID == 1 {
+		if currentQuestion.QuestionInTestID-previousQuestionID == 1 {
 			previousQuestionID = 0
 		}
 		response.Text = append(response.Text, fmt.Sprintf(quizModels.MsgBackToQuestionInTest, quizModels.QuestionPosition[previousQuestionID]))
@@ -132,7 +136,7 @@ func (app *QuizApp) ProcessBasicRequest(input marusia.RequestBody) (response mar
 	return app.navToQuestion(userID, nextQuestion, response.Text, false)
 }
 
-func (app *QuizApp) processAbsoluteQuestionID(userID uint64, currentQuestion quizModels.Question, prevText []string, nextQuestionID uint64) (response marusia.Response, err error) {
+func (app *QuizApp) processAbsoluteQuestionID(userID uint64, pastQuestionIDs []uint64, currentQuestion quizModels.Question, prevText []string, nextQuestionID uint64) (response marusia.Response, err error) {
 	switch nextQuestionID {
 	case quizModels.QuizRepeatLastMessage:
 		response.Text = append(response.Text, quizModels.MsgQuestionRepeat)
@@ -160,11 +164,14 @@ func (app *QuizApp) processAbsoluteQuestionID(userID uint64, currentQuestion qui
 			EndSession: true,
 		}, nil
 
+	case quizModels.QuizReturnByOneQuestion:
+		if len(pastQuestionIDs) > 1 {
+			pastQuestionIDs = pastQuestionIDs[:len(pastQuestionIDs)-1]
+		}
+		return app.navToQuestionByID(userID, pastQuestionIDs[len(pastQuestionIDs)-1], response.Text, false)
+
 	default:
-		return marusia.Response{
-			Text:       []string{quizModels.ErrNextQuestionNotFound.Error()},
-			EndSession: false,
-		}, nil
+		return app.navToQuestionByID(userID, nextQuestionID, response.Text, false)
 	}
 }
 
@@ -224,20 +231,9 @@ func getFittingAnswer(userInput string, question quizModels.Question) (nextAnswe
 		}
 	}
 
-	// return to n questions back
-	if question.QuestionID != quizModels.QuizRootID {
-		for _, BackToQuestion := range quizModels.AnswersBackToQuestion {
-			if strings.Contains(userInput, BackToQuestion) {
-				for word, pos := range quizModels.AnswersIntTestPositional {
-					if strings.Contains(userInput, word) {
-						questionInTest := int(question.QuestionInTestID) - pos
-						if questionInTest < 1 {
-							questionInTest = 1
-						}
-						return quizModels.Answer{NextQuestionID: uint64(questionInTest)}, true, nil
-					}
-				}
-			}
+	for _, answerBackToQuestion := range quizModels.AnswersBackToQuestion {
+		if strings.Contains(userInput, answerBackToQuestion) {
+			return quizModels.Answer{NextQuestionID: quizModels.QuizReturnByOneQuestion}, false, nil
 		}
 	}
 
