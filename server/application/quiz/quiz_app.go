@@ -44,10 +44,12 @@ func (app *QuizApp) ProcessBasicRequest(input marusia.RequestBody) (response mar
 			return marusia.Response{}, err
 		}
 
-		currentQuestionID, err := app.quizRepo.GetCurrentQuestionID(userID)
+		pastQuestions, err := app.quizRepo.GetPastQuestions(userID)
 		if err != nil {
 			return marusia.Response{}, err
 		}
+
+		currentQuestionID := pastQuestions[len(pastQuestions)-1]
 
 		return app.navToQuestionByID(userID, currentQuestionID, response.Text, false)
 	}
@@ -71,10 +73,12 @@ func (app *QuizApp) ProcessBasicRequest(input marusia.RequestBody) (response mar
 		return marusia.Response{}, err
 	}
 
-	currentQuestionID, err := app.quizRepo.GetCurrentQuestionID(userID)
+	pastQuestions, err := app.quizRepo.GetPastQuestions(userID)
 	if err != nil {
 		return marusia.Response{}, err
 	}
+
+	currentQuestionID := pastQuestions[len(pastQuestions)-1]
 
 	currentQuestion, err := app.quizRepo.GetQuestion(currentQuestionID)
 	if err != nil {
@@ -86,7 +90,7 @@ func (app *QuizApp) ProcessBasicRequest(input marusia.RequestBody) (response mar
 		return app.navToQuestionByID(userID, quizModels.QuizRootID, append(response.Text, currentQuestion.Text), false)
 	}
 
-	answer, isTypicalNavigation, err := getFittingAnswer(input.Request.OriginalUtterance, currentQuestion)
+	answer, isTypicalNavigation, err := getFittingAnswer(input.Request.OriginalUtterance, pastQuestions, currentQuestion)
 	if err != nil {
 		if err != quizModels.ErrNextQuestionNotFound {
 			return marusia.Response{}, err
@@ -116,7 +120,7 @@ func (app *QuizApp) ProcessBasicRequest(input marusia.RequestBody) (response mar
 
 	if answer.NextQuestionID < currentQuestion.QuestionInTestID {
 		previousQuestionID := answer.NextQuestionID
-		if currentQuestion.QuestionInTestID - previousQuestionID == 1 {
+		if currentQuestion.QuestionInTestID-previousQuestionID == 1 {
 			previousQuestionID = 0
 		}
 		response.Text = append(response.Text, fmt.Sprintf(quizModels.MsgBackToQuestionInTest, quizModels.QuestionPosition[previousQuestionID]))
@@ -193,7 +197,7 @@ func (app *QuizApp) navToQuestion(userID uint64, question quizModels.Question, p
 	}, nil
 }
 
-func getFittingAnswer(userInput string, question quizModels.Question) (nextAnswer quizModels.Answer, isTypicalNavigation bool, err error) {
+func getFittingAnswer(userInput string, pastQuestionIDs []uint64, question quizModels.Question) (nextAnswer quizModels.Answer, isTypicalNavigation bool, err error) {
 	userInput = strings.ToLower(userInput)
 	userInput = strings.TrimRight(userInput, ".?!")
 
@@ -228,15 +232,11 @@ func getFittingAnswer(userInput string, question quizModels.Question) (nextAnswe
 	if question.QuestionID != quizModels.QuizRootID {
 		for _, BackToQuestion := range quizModels.AnswersBackToQuestion {
 			if strings.Contains(userInput, BackToQuestion) {
-				for word, pos := range quizModels.AnswersIntTestPositional {
-					if strings.Contains(userInput, word) {
-						questionInTest := int(question.QuestionInTestID) - pos
-						if questionInTest < 1 {
-							questionInTest = 1
-						}
-						return quizModels.Answer{NextQuestionID: uint64(questionInTest)}, true, nil
-					}
+				if len(pastQuestionIDs) > 1 {
+					pastQuestionIDs = pastQuestionIDs[:len(pastQuestionIDs)-1]
 				}
+
+				return quizModels.Answer{NextQuestionID: pastQuestionIDs[len(pastQuestionIDs)-1]}, false, nil
 			}
 		}
 	}
