@@ -80,7 +80,26 @@ func (app *AuthApp) Register(input marusia.RequestBody) (response marusia.Respon
 		return marusia.Response{}, false, err
 	}
 
-	return app.Login(input)
+	user, err := app.userRepo.GetUserByAppID(input.Session.Application.ApplicationID)
+	if err != nil {
+		if err == authModels.ErrUserNotFound { // User is not registered, this should not actually happen!
+			return marusia.Response{
+				Text:       []string{authModels.MsgRegistrationPrompt},
+				EndSession: false,
+			}, false, nil
+		}
+		return marusia.Response{}, false, err
+	}
+
+	err = app.userRepo.LoginUser(user.UserID, input.Session.SessionID)
+	if err != nil {
+		return marusia.Response{}, false, err
+	}
+
+	return marusia.Response{
+		Text:       []string{fmt.Sprintf(authModels.MsgWelcomeAfterReg, user.Username)},
+		EndSession: false,
+	}, true, nil
 }
 
 func (app *AuthApp) GetUserIDBySessionID(sessionID string) (userID uint64, err error) {
