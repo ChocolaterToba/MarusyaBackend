@@ -74,6 +74,11 @@ var (
 		"г":         3,
 		"д":         4,
 		"левый":     0,
+		"1":         0,
+		"2":         1,
+		"3":         2,
+		"4":         3,
+		"5":         4,
 	}
 
 	AnswersIntTestPositional = map[string]int{
