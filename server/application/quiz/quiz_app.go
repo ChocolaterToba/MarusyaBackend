@@ -197,12 +197,12 @@ func (app *QuizApp) processAbsoluteQuestionID(userID uint64, pastAnswers []quizM
 			return marusia.Response{}, quizModels.ErrChooseQuizFirst
 		}
 
-		err = app.quizRepo.SetPastAnswers(userID, pastAnswers[:len(pastAnswers)-1]) // clear entire pastAnswers except for first element
+		err = app.quizRepo.SetPastAnswers(userID, pastAnswers[:len(pastAnswers)-1]) // remove last pastAnswers element
 		if err != nil {
 			return marusia.Response{}, err
 		}
 
-		return app.navToQuestionByID(userID, pastAnswers[len(pastAnswers)-1].NextQuestionID, response.Text)
+		return app.navToQuestionByID(userID, pastAnswers[len(pastAnswers)-2].NextQuestionID, response.Text)
 
 	default:
 		return app.navToQuestionByID(userID, nextAnswer.NextQuestionID, response.Text)
