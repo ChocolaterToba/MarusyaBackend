@@ -109,11 +109,6 @@ func (app *QuizApp) ProcessBasicRequest(input marusia.RequestBody) (response mar
 		return app.processAbsoluteQuestionID(userID, pastAnswers, currentQuestion, response.Text, answer)
 	}
 
-	pastAnswers = append(pastAnswers, answer)
-	if answer.AnswerText != "" {
-		response.Text = append(response.Text, answer.AnswerText)
-	}
-
 	// When we are in root, nextQuestionID is question_id in db
 	if currentQuestionID == quizModels.QuizRootID {
 		err = app.quizRepo.SetPastAnswers(userID, []quizModels.Answer{answer})
@@ -132,6 +127,12 @@ func (app *QuizApp) ProcessBasicRequest(input marusia.RequestBody) (response mar
 	nextQuestion, err := app.quizRepo.GetQuestionInTest(currentQuestion.TestID, answer.NextQuestionID)
 	if err != nil {
 		return marusia.Response{}, err
+	}
+
+	// pastAnswers need to have absolute ids in them
+	pastAnswers = append(pastAnswers, quizModels.Answer{NextQuestionID: nextQuestion.QuestionID, IsCorrect: answer.IsCorrect})
+	if answer.AnswerText != "" {
+		response.Text = append(response.Text, answer.AnswerText)
 	}
 
 	if len(nextQuestion.Answers) == 0 { // No next questions => this question is the last one, go to root
