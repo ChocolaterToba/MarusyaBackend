@@ -1,11 +1,11 @@
 package quiz
 
 const (
-	MsgIncorrectInput       = "Не смогла распознать твой ответ. Попробуй ещё раз."
-	MsgSelectQuiz           = "Выбери, какой тест хочешь пройти."
-	MsgQuestionRepeat       = "Повторяю"
-	MsgStartOverTest        = "Хорошо, начнём тест сначала."
-	MsgBackToQuestionInTest = "Хорошо, вернёмся на %s вопрос."
+	MsgIncorrectInput = "Не смогла распознать твой ответ. Попробуй ещё раз."
+	MsgSelectQuiz     = "Выбери, какой тест хочешь пройти."
+	MsgQuestionRepeat = "Повторяю"
+	MsgStartOverTest  = "Хорошо, начнём тест сначала."
+	MsgFinishQuiz     = "Тест окончен"
 
 	ParticleNot = "не "
 )
