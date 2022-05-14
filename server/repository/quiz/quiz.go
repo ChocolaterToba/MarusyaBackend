@@ -53,17 +53,17 @@ func (repo *QuizRepo) GetPastAnswers(userID uint64) (answers []quizModels.Answer
 func (repo *QuizRepo) SetPastAnswers(userID uint64, answers []quizModels.Answer) (err error) {
 	err = repo.conn.InTx(func(tx *sql.Tx) error {
 		query := `UPDATE account
-				  SET past_questions = $2
+				  SET past_answers = $2
 				  WHERE user_id = $1`
 
 		result, err := tx.Exec(query, userID, cusAnswersSlice(answers))
 		if err != nil {
-			return fmt.Errorf("error in QuizRepo: could not set past questions: %s", err)
+			return fmt.Errorf("error in QuizRepo: could not set past answers: %s", err)
 		}
 
 		rowsAffected, err := result.RowsAffected()
 		if err != nil {
-			return fmt.Errorf("error in QuizRepo: could not set past questions: %s", err)
+			return fmt.Errorf("error in QuizRepo: could not set past answers: %s", err)
 		}
 		if rowsAffected != 1 {
 			return authModels.ErrUserNotFound
