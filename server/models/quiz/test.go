@@ -17,4 +17,5 @@ type Question struct {
 type Answer struct {
 	NextQuestionID uint64 `json:"next_question_id"`
 	AnswerText     string `json:"answer_text"`
+	IsCorrect      bool   `json:"is_correct"`
 }
