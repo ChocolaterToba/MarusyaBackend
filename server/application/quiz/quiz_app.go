@@ -6,6 +6,7 @@ import (
 	"cmkids/models/help"
 	"cmkids/models/marusia"
 	quizModels "cmkids/models/quiz"
+	"cmkids/models/settings"
 	quizRepo "cmkids/repository/quiz"
 	"fmt"
 	"sort"
@@ -21,14 +22,17 @@ type QuizAppInterface interface {
 type QuizApp struct {
 	authApp  authApp.AuthAppInterface
 	quizRepo quizRepo.QuizRepoInterface
+	config   *settings.Config
 	logger   *zap.Logger
 }
 
-func NewQuizApp(authApp authApp.AuthAppInterface, quizRepo quizRepo.QuizRepoInterface, logger *zap.Logger) *QuizApp {
+func NewQuizApp(authApp authApp.AuthAppInterface, quizRepo quizRepo.QuizRepoInterface, config *settings.Config, logger *zap.Logger) *QuizApp {
 	return &QuizApp{
 		authApp:  authApp,
 		quizRepo: quizRepo,
-		logger:   logger}
+		config:   config,
+		logger:   logger,
+	}
 }
 
 func (app *QuizApp) ProcessBasicRequest(input marusia.RequestBody) (response marusia.Response, err error) {
@@ -102,7 +106,7 @@ func (app *QuizApp) ProcessBasicRequest(input marusia.RequestBody) (response mar
 			return marusia.Response{}, err
 		}
 
-		return app.navToQuestion(userID, currentQuestion, append(response.Text, quizModels.MsgIncorrectInput))
+		return app.navToQuestion(userID, currentQuestion, append(response.Text, app.config.Messages.MsgIncorrectInput))
 	}
 
 	if !isTypicalNavigation {
@@ -151,7 +155,7 @@ func (app *QuizApp) processAbsoluteQuestionID(userID uint64, pastAnswers []quizM
 	currentQuestion quizModels.Question, prevText []string, nextAnswer quizModels.Answer) (response marusia.Response, err error) {
 	switch nextAnswer.NextQuestionID {
 	case quizModels.QuizRepeatLastMessage:
-		response.Text = append(response.Text, quizModels.MsgQuestionRepeat)
+		response.Text = append(response.Text, app.config.Messages.MsgQuestionRepeat)
 		return app.navToQuestion(userID, currentQuestion, response.Text)
 
 	case quizModels.QuizFirstQuestion:
@@ -165,11 +169,11 @@ func (app *QuizApp) processAbsoluteQuestionID(userID uint64, pastAnswers []quizM
 			return marusia.Response{}, err
 		}
 
-		response.Text = append(response.Text, quizModels.MsgStartOverTest)
+		response.Text = append(response.Text, app.config.Messages.MsgStartQuizOver)
 		return app.navToQuestionByID(userID, pastAnswers[0].NextQuestionID, response.Text)
 
 	case quizModels.QuizGetHelp:
-		response.Text = append(response.Text, help.MsgHelpMe)
+		response.Text = append(response.Text, app.config.Messages.MsgHelp)
 		return app.navToQuestion(userID, currentQuestion, response.Text)
 
 	case quizModels.QuizRootID:
@@ -187,7 +191,7 @@ func (app *QuizApp) processAbsoluteQuestionID(userID uint64, pastAnswers []quizM
 
 		// TODO: add logout here?
 		return marusia.Response{
-			Text:       []string{authModels.MsgGoodBye},
+			Text:       []string{app.config.Messages.MsgGoodbye},
 			EndSession: true,
 		}, nil
 
@@ -239,7 +243,7 @@ func (app *QuizApp) finishQuiz(userID uint64, pastAnswers []quizModels.Answer, p
 	fmt.Printf("Верных ответов %d из %d\n", correctAnswersCount, len(pastAnswers)) // TODO: send this to CRM
 
 	err = app.quizRepo.SetPastAnswers(userID, nil)
-	return app.navToQuestionByID(userID, quizModels.QuizRootID, append(prevText, quizModels.MsgFinishQuiz))
+	return app.navToQuestionByID(userID, quizModels.QuizRootID, append(prevText, app.config.Messages.MsgFinishQuiz))
 }
 
 func getFittingAnswer(userInput string, question quizModels.Question) (nextAnswer quizModels.Answer, isTypicalNavigation bool, err error) {

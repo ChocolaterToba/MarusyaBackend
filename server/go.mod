@@ -10,4 +10,5 @@ require (
 	github.com/rs/cors v1.8.2
 	go.uber.org/zap v1.21.0
 	golang.org/x/exp v0.0.0-20220325121720-054d8573a5d8 // indirect
+	gopkg.in/yaml.v3 v3.0.0-20220512140231-539c8e751b99 // indirect
 )
