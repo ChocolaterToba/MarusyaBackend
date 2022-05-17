@@ -147,7 +147,7 @@ func (repo *QuizRepo) CreateEntireQuiz(quiz quizModels.Test) (quizID uint64, err
 		}
 
 		questionsSB := sqlbuilder.NewInsertBuilder()
-		questionsSB.InsertInto("questions")
+		questionsSB.InsertInto("question")
 		questionsSB.Cols("question_in_test_id", "test_id", "text", "next_question_ids")
 		for questionInTestID := range quiz.Questions {
 			question := quiz.Questions[questionInTestID]
