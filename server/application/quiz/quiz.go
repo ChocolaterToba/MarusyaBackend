@@ -27,10 +27,28 @@ func (app *QuizApp) addQuizFromCSV(file io.Reader) (err error) {
 	csvReader.Comma = ';'
 	records, err := csvReader.ReadAll()
 	if err != nil {
-		return errors.Wrap(err, "addQuizFromCSV: Unable to parse file as CSV")
+		return errors.Wrap(err, "Cannot to parse file as CSV")
 	}
 
-	fmt.Println(len(records[0]))
+	test := quizModels.Test{}
+	err = test.Parse(records)
+	if err != nil {
+		return errors.Wrap(err, "Cannot parse test")
+	}
+
+	err = app.addQuiz(test)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (app *QuizApp) addQuiz(quiz quizModels.Test) (err error) {
+	_, err = app.quizRepo.CreateEntireQuiz(quiz)
+	if err != nil {
+		return err
+	}
 
 	return nil
 }

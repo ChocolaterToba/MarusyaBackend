@@ -4,6 +4,7 @@ go 1.13
 
 require (
 	github.com/gorilla/mux v1.8.0
+	github.com/huandu/go-sqlbuilder v1.13.0 // indirect
 	github.com/lib/pq v1.10.4
 	github.com/pkg/errors v0.9.1
 	github.com/rs/cors v1.8.2

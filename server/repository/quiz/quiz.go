@@ -5,7 +5,9 @@ import (
 	authModels "cmkids/models/auth"
 	quizModels "cmkids/models/quiz"
 	"encoding/json"
-	"errors"
+
+	"github.com/huandu/go-sqlbuilder"
+	"github.com/pkg/errors"
 
 	"database/sql"
 	"database/sql/driver"
@@ -17,6 +19,7 @@ type QuizRepoInterface interface {
 	SetPastAnswers(userID uint64, answers []quizModels.Answer) (err error)
 	GetQuestion(questionID uint64) (question quizModels.Question, err error)
 	GetQuestionInTest(testID uint64, questionInTestID uint64) (question quizModels.Question, err error)
+	CreateEntireQuiz(quiz quizModels.Test) (quizID uint64, err error)
 }
 
 type QuizRepo struct {
@@ -125,7 +128,50 @@ func (repo *QuizRepo) GetQuestionInTest(testID uint64, questionInTestID uint64) 
 	return question, err
 }
 
+// CreateQuiz inserts quiz (including questions and answers) into database
+func (repo *QuizRepo) CreateEntireQuiz(quiz quizModels.Test) (quizID uint64, err error) {
+	err = repo.conn.InTx(func(tx *sql.Tx) error {
+		const createQuizQuery = `INSERT INTO quiz (title, backtracking_enabled, calculate_correctness)
+								 VALUES ($1, $2, $3)
+								 RETURNING id`
+
+		err = tx.QueryRow(createQuizQuery, quiz.Title, quiz.BackTrackingEnabled, quiz.CalculateCorrectness).Scan(&quizID)
+		if err != nil {
+			return errors.Wrap(err, "Error in QuizRepo: could not create quiz metadata")
+		}
+
+		for questionInTestID := range quiz.Questions {
+			question := quiz.Questions[questionInTestID]
+			question.TestID = quizID
+			quiz.Questions[questionInTestID] = question
+		}
+
+		questionsSB := sqlbuilder.NewInsertBuilder()
+		questionsSB.InsertInto("questions")
+		questionsSB.Cols("question_in_test_id", "test_id", "text", "next_question_ids")
+		for questionInTestID := range quiz.Questions {
+			question := quiz.Questions[questionInTestID]
+			questionsSB.Values(question.QuestionInTestID, question.TestID, question.Text, cusAnswersMap(question.Answers))
+		}
+
+		createQuestionsQuery, args := questionsSB.BuildWithFlavor(sqlbuilder.PostgreSQL)
+		_, err = tx.Exec(createQuestionsQuery, args...)
+		if err != nil {
+			return errors.Wrap(err, "Error in QuizRepo: could not create quiz's questions")
+		}
+
+		return nil
+	})
+
+	return quizID, err
+}
+
 type cusAnswersMap map[string]quizModels.Answer
+
+// Returns the JSON-encoded representation
+func (a cusAnswersMap) Value() (driver.Value, error) {
+	return json.Marshal(a)
+}
 
 // Decodes a JSON-encoded value
 func (a *cusAnswersMap) Scan(value interface{}) error {
