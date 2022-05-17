@@ -4,7 +4,8 @@ import (
 	"cmkids/adapter"
 	authapp "cmkids/application/auth"
 	quizapp "cmkids/application/quiz"
-	basicHandler "cmkids/interfaces/basic"
+	marusiaHandler "cmkids/interfaces/marusia"
+	quizhandler "cmkids/interfaces/quiz"
 	"cmkids/interfaces/routing"
 	settings "cmkids/models/settings"
 	quizrepo "cmkids/repository/quiz"
@@ -39,11 +40,12 @@ func runServer(addr string) {
 	authApp := authapp.NewAuthApp(userRepo, quizRepo, config, logger)
 	quizApp := quizapp.NewQuizApp(authApp, quizRepo, config, logger)
 
-	basicHandler := basicHandler.NewBasicHandler(quizApp, logger)
+	marusiaHandler := marusiaHandler.NewMarusiaHandler(quizApp, logger)
+	quizHandler := quizhandler.NewQuizHandler(quizApp, logger)
 
 	os.Setenv("HTTPS_ON", "false")
 
-	r := routing.CreateRouter(basicHandler)
+	r := routing.CreateRouter(marusiaHandler, quizHandler)
 
 	allowedOrigins := make([]string, 0)
 	switch os.Getenv("HTTPS_ON") {
