@@ -77,7 +77,7 @@ func (app *QuizApp) ProcessMarusiaRequest(input marusia.RequestBody) (response m
 
 	answer, isTypicalNavigation, err := getFittingAnswer(input.Request.OriginalUtterance, currentQuestion)
 	if err != nil {
-		if err != quizModels.ErrNextQuestionNotFound {
+		if err != quizModels.ErrQuestionNotFound {
 			return marusia.Response{}, err
 		}
 
@@ -277,7 +277,7 @@ func getFittingAnswer(userInput string, question quizModels.Question) (nextAnswe
 		pos, exists := quizModels.AnswersPositional[userInputTokens[i]]
 		if exists {
 			if pos >= len(question.Answers) {
-				return quizModels.Answer{}, false, quizModels.ErrNextQuestionNotFound
+				return quizModels.Answer{}, false, quizModels.ErrQuestionNotFound
 			}
 
 			// if pos is valid, find corresponding answer
@@ -285,7 +285,7 @@ func getFittingAnswer(userInput string, question quizModels.Question) (nextAnswe
 		}
 	}
 
-	return quizModels.Answer{}, false, quizModels.ErrNextQuestionNotFound
+	return quizModels.Answer{}, false, quizModels.ErrQuestionNotFound
 }
 
 func getLastMatch(userInput string, matches map[string]quizModels.Answer) (resultAnswer quizModels.Answer, found bool) {

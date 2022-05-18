@@ -3,9 +3,8 @@ package quiz
 import "errors"
 
 var (
-	ErrCurrentQuestionNotFound = errors.New("Не удалось найти вопрос")
-	ErrNextQuestionNotFound    = errors.New("Не удалось найти подходящий вариант ответа")
-	ErrChooseQuizFirst         = errors.New("Сначала выбери тест")
+	ErrQuestionNotFound = errors.New("Не удалось найти вопрос")
+	ErrChooseQuizFirst  = errors.New("Сначала выбери тест")
 )
 
 var (
