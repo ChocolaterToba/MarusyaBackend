@@ -63,6 +63,6 @@ func (handler *MarusiaHandler) HandleMarusiaRequest(w http.ResponseWriter, r *ht
 func makeErrResponse(err error) marusia.Response {
 	return marusia.Response{
 		Text:       []string{fmt.Sprintf("Произошла ошибка: %s", err.Error())},
-		EndSession: true,
+		EndSession: false,
 	}
 }
