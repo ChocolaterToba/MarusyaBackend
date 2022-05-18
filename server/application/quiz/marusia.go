@@ -134,6 +134,15 @@ func (app *QuizApp) processAbsoluteQuestionID(userID uint64, pastAnswers []quizM
 		return app.navToQuestion(userID, currentQuestion, response.Text)
 
 	case quizModels.QuizFirstQuestion:
+		quiz, err := app.quizRepo.GetQuiz(currentQuestion.TestID)
+		if err != nil {
+			return marusia.Response{}, err
+		}
+
+		if !quiz.BackTrackingEnabled {
+			return marusia.Response{}, quizModels.ErrBacktrackingDisabled
+		}
+
 		// TODO: get quiz and check if backtracking is allowed
 		if len(pastAnswers) == 0 {
 			return marusia.Response{}, quizModels.ErrChooseQuizFirst
@@ -171,7 +180,15 @@ func (app *QuizApp) processAbsoluteQuestionID(userID uint64, pastAnswers []quizM
 		}, nil
 
 	case quizModels.QuizReturnByOneQuestion:
-		// TODO: get quiz and check if backtracking is allowed
+		quiz, err := app.quizRepo.GetQuiz(currentQuestion.TestID)
+		if err != nil {
+			return marusia.Response{}, err
+		}
+
+		if !quiz.BackTrackingEnabled {
+			return marusia.Response{}, quizModels.ErrBacktrackingDisabled
+		}
+
 		if len(pastAnswers) == 0 {
 			return marusia.Response{}, quizModels.ErrChooseQuizFirst
 		}

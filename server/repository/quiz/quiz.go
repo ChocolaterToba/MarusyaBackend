@@ -20,6 +20,7 @@ type QuizRepoInterface interface {
 	GetQuestion(questionID uint64) (question quizModels.Question, err error)
 	GetQuestionInTest(testID uint64, questionInTestID uint64) (question quizModels.Question, err error)
 	CreateEntireQuiz(quiz quizModels.Test) (quizID uint64, err error)
+	GetQuiz(quizID uint64) (quiz quizModels.Test, err error)
 }
 
 type QuizRepo struct {
@@ -213,7 +214,7 @@ func (repo *QuizRepo) getQuestionInTestTx(tx *sql.Tx, testID uint64, questionInT
 		if errors.Is(err, sql.ErrNoRows) {
 			return quizModels.Question{}, quizModels.ErrQuestionNotFound
 		}
-		return quizModels.Question{}, fmt.Errorf("error in QuizRepo: could not get question by question_in_test_id: %s", err)
+		return quizModels.Question{}, errors.Wrap(err, "error in QuizRepo: could not get question by question_in_test_id")
 	}
 	question.Answers = answers
 
@@ -237,6 +238,28 @@ func (repo *QuizRepo) updateQuestion(tx *sql.Tx, question quizModels.Question) (
 	}
 
 	return nil
+}
+
+func (repo *QuizRepo) GetQuiz(quizID uint64) (quiz quizModels.Test, err error) {
+	err = repo.conn.InTx(func(tx *sql.Tx) error {
+		const query = `SELECT id, title, backtracking_enabled, calculate_correctness
+					   FROM quiz
+					   WHERE id = $1`
+
+		err = tx.QueryRow(query, quizID).Scan(
+			&quiz.TestID, &quiz.Title, &quiz.BackTrackingEnabled, &quiz.CalculateCorrectness,
+		)
+		if err != nil {
+			if errors.Is(err, sql.ErrNoRows) {
+				return quizModels.ErrQuestionNotFound
+			}
+			return errors.Wrap(err, "Error in QuizRepo: could not get quiz by id")
+		}
+
+		return nil
+	})
+
+	return quiz, err
 }
 
 type cusAnswersMap map[string]quizModels.Answer
