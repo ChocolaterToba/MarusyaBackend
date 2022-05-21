@@ -1,1 +1,1 @@
-psql -U postgres --dbname=postgres < "backup.sql"
+psql -U mikhail --dbname=cmkids < "backup.sql"

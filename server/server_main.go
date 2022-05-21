@@ -29,7 +29,9 @@ func runServer(addr string) {
 		sugarLogger.Fatal("Can not load config", zap.String("error", err.Error()))
 	}
 
-	conn, err := adapter.InitDB(config.Secrets.DBHost, config.Secrets.DBPassword)
+	conn, err := adapter.InitDB(
+		config.Secrets.DBHost, config.Secrets.DBPort, config.Secrets.DBSSL,
+		config.Secrets.DBName, config.Secrets.DBUser, config.Secrets.DBPassword)
 	if err != nil {
 		sugarLogger.Fatal("Can not init db connection", zap.String("error", err.Error()))
 	}

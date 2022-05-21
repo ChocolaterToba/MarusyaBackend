@@ -219,3 +219,11 @@ ALTER TABLE ONLY public.question
 -- PostgreSQL database dump complete
 --
 
+INSERT INTO public.quiz (id, title)
+    VALUES (0, 'Изначальный тест - только для корня!')
+    ON CONFLICT DO NOTHING;
+
+INSERT INTO public.question (question_id, question_in_test_id, test_id, text)
+    VALUES (0, 0, 0, 'Выбери тест')
+    ON CONFLICT DO NOTHING;
+

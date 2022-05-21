@@ -1,0 +1,8 @@
+version: "3.7"
+
+services:
+  go-main:
+    build: server
+    ports:
+      - 8080:8080
+    command: ["go", "run", "server_main.go"]

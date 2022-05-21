@@ -5,4 +5,16 @@ services:
     build: server
     ports:
       - 8080:8080
-    command: ["go", "run", "server_main.go"]
+    depends_on:
+      - postgres
+    command: ["./wait-for-it.sh", "postgres:6432", "--", "go", "run", "server_main.go"]
+  
+  postgres:
+    build: postgres
+    ports:
+      - 6432:5432
+    volumes:
+      - postgres-volume:/var/lib/postgresql/data
+
+volumes:
+  postgres-volume:

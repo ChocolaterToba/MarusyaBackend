@@ -1,1 +1,1 @@
-docker exec -t postgrescontainer pg_dump -U postgres > database.sql
+docker exec -t postgrescontainer pg_dump -U mikhail > database.sql
