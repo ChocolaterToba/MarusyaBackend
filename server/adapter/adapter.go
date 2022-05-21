@@ -36,19 +36,19 @@ func (b *DBAdapter) InTx(f func(tx *sql.Tx) error) (err error) {
 	return
 }
 
-func InitDB(host, pass string) (Adapter, error) {
+func InitDB(host string, dbname string, user string, password string) (Adapter, error) {
 
 	connFmt := `
         host=%s 
         port=6432
-        dbname=cmkids
-        user=mikhail
+        dbname=%s
+        user=%s
         password=%s
         sslmode=verify-full
         sslrootcert=root.crt
 `
 
-	conn, err := sql.Open("postgres", fmt.Sprintf(connFmt, host, pass))
+	conn, err := sql.Open("postgres", fmt.Sprintf(connFmt, host, dbname, user, password))
 	if err != nil {
 		return nil, err
 	}

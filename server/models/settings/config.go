@@ -43,6 +43,8 @@ type Config struct {
 
 	Secrets struct {
 		DBHost     string `yaml:"db_host"`
+		DBName     string `yaml:"db_name"`
+		DBUser     string `yaml:"db_user"`
 		DBPassword string `yaml:"db_pass"`
 	}
 }
