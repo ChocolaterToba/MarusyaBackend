@@ -20,8 +20,8 @@ messages:
   msg_goodbye: Пока! Не забывай железных правил безопасности!
 
 secrets:
-  db_host: postgres
-  db_port: 5432
+  db_host: postgres # is same as Postgres container name if using Docker network
+  db_port: 5432 # is always 5432 if db is in same Docker network
   db_ssl: disable
   db_name: cmkids
   db_user: mikhail

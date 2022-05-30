@@ -46,8 +46,6 @@ func InitDB(host string, port string, sslMode string, dbname string, user string
         sslmode=%s
         sslrootcert=root.crt
 `
-
-	fmt.Println(fmt.Sprintf(connFmt, host, port, dbname, user, password, sslMode))
 	conn, err := sql.Open("postgres", fmt.Sprintf(connFmt, host, port, dbname, user, password, sslMode))
 	if err != nil {
 		return nil, err

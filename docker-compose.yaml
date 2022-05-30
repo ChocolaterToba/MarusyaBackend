@@ -7,7 +7,7 @@ services:
       - 8080:8080
     depends_on:
       - postgres
-    command: ["./wait-for-it.sh", "postgres:6432", "--", "go", "run", "server_main.go"]
+    command: ["./wait-for-it.sh", "postgres:5432", "--", "go", "run", "server_main.go"]
   
   postgres:
     build: postgres
