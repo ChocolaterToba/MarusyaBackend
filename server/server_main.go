@@ -4,15 +4,15 @@ import (
 	"cmkids/adapter"
 	authapp "cmkids/application/auth"
 	quizapp "cmkids/application/quiz"
-	basicHandler "cmkids/interfaces/basic"
+	marusiaHandler "cmkids/interfaces/marusia"
+	quizhandler "cmkids/interfaces/quiz"
 	"cmkids/interfaces/routing"
+	settings "cmkids/models/settings"
 	quizrepo "cmkids/repository/quiz"
 	userrepo "cmkids/repository/user"
 	"fmt"
 	"net/http"
 	"os"
-
-	"github.com/joho/godotenv"
 
 	"github.com/rs/cors"
 	"go.uber.org/zap"
@@ -24,14 +24,14 @@ func runServer(addr string) {
 
 	sugarLogger := logger.Sugar()
 
-	err := godotenv.Load("db.env")
+	config, err := settings.NewConfig("settings/values_local.yaml")
 	if err != nil {
-		sugarLogger.Fatal("Could not load db.env file", zap.String("error", err.Error()))
+		sugarLogger.Fatal("Can not load config", zap.String("error", err.Error()))
 	}
-	host := os.Getenv("DB_HOST")
-	pass := os.Getenv("DB_PASS")
 
-	conn, err := adapter.InitDB(host, pass)
+	conn, err := adapter.InitDB(
+		config.Secrets.DBHost, config.Secrets.DBPort, config.Secrets.DBSSL,
+		config.Secrets.DBName, config.Secrets.DBUser, config.Secrets.DBPassword)
 	if err != nil {
 		sugarLogger.Fatal("Can not init db connection", zap.String("error", err.Error()))
 	}
@@ -39,14 +39,15 @@ func runServer(addr string) {
 	userRepo := userrepo.NewUserRepo(conn)
 	quizRepo := quizrepo.NewQuizRepo(conn)
 
-	authApp := authapp.NewAuthApp(userRepo, quizRepo, logger)
-	quizApp := quizapp.NewQuizApp(authApp, quizRepo, logger)
+	authApp := authapp.NewAuthApp(userRepo, quizRepo, config, logger)
+	quizApp := quizapp.NewQuizApp(authApp, quizRepo, config, logger)
 
-	basicHandler := basicHandler.NewBasicHandler(quizApp, logger)
+	marusiaHandler := marusiaHandler.NewMarusiaHandler(quizApp, logger)
+	quizHandler := quizhandler.NewQuizHandler(quizApp, logger)
 
 	os.Setenv("HTTPS_ON", "false")
 
-	r := routing.CreateRouter(basicHandler)
+	r := routing.CreateRouter(marusiaHandler, quizHandler)
 
 	allowedOrigins := make([]string, 0)
 	switch os.Getenv("HTTPS_ON") {

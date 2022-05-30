@@ -1,4 +1,4 @@
-package basic
+package marusia
 
 import (
 	quizApp "cmkids/application/quiz"
@@ -11,21 +11,21 @@ import (
 	"go.uber.org/zap"
 )
 
-// BasicHandler keep information about apps and cookies needed for basic package
-type BasicHandler struct {
+// MarusiaHandler keep information about apps and cookies needed for marusia package
+type MarusiaHandler struct {
 	quizApp quizApp.QuizAppInterface
 	logger  *zap.Logger
 }
 
-func NewBasicHandler(quizApp quizApp.QuizAppInterface, logger *zap.Logger) *BasicHandler {
-	return &BasicHandler{
+func NewMarusiaHandler(quizApp quizApp.QuizAppInterface, logger *zap.Logger) *MarusiaHandler {
+	return &MarusiaHandler{
 		quizApp: quizApp,
 		logger:  logger,
 	}
 }
 
-//HandleBasicRequest changes password of current user
-func (handler *BasicHandler) HandleBasicRequest(w http.ResponseWriter, r *http.Request) {
+//HandleMarusiaRequest changes password of current user
+func (handler *MarusiaHandler) HandleMarusiaRequest(w http.ResponseWriter, r *http.Request) {
 	input := new(marusia.RequestBody)
 	err := json.NewDecoder(r.Body).Decode(input)
 	if err != nil {
@@ -41,7 +41,7 @@ func (handler *BasicHandler) HandleBasicRequest(w http.ResponseWriter, r *http.R
 
 	// logic starts here
 
-	output.Response, err = handler.quizApp.ProcessBasicRequest(*input)
+	output.Response, err = handler.quizApp.ProcessMarusiaRequest(*input)
 	if err != nil {
 		output.Response = makeErrResponse(err)
 	}
@@ -63,6 +63,6 @@ func (handler *BasicHandler) HandleBasicRequest(w http.ResponseWriter, r *http.R
 func makeErrResponse(err error) marusia.Response {
 	return marusia.Response{
 		Text:       []string{fmt.Sprintf("Произошла ошибка: %s", err.Error())},
-		EndSession: true,
+		EndSession: false,
 	}
 }

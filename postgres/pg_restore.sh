@@ -1,0 +1,1 @@
+psql -U mikhail --dbname=cmkids < "backup.sql"

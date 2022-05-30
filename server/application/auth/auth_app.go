@@ -3,6 +3,7 @@ package auth
 import (
 	authModels "cmkids/models/auth"
 	"cmkids/models/marusia"
+	"cmkids/models/settings"
 	quizRepo "cmkids/repository/quiz"
 	userRepo "cmkids/repository/user"
 
@@ -20,14 +21,17 @@ type AuthAppInterface interface {
 type AuthApp struct {
 	userRepo userRepo.UserRepoInterface
 	quizRepo quizRepo.QuizRepoInterface
+	config   *settings.Config
 	logger   *zap.Logger
 }
 
-func NewAuthApp(userRepo userRepo.UserRepoInterface, quizRepo quizRepo.QuizRepoInterface, logger *zap.Logger) *AuthApp {
+func NewAuthApp(userRepo userRepo.UserRepoInterface, quizRepo quizRepo.QuizRepoInterface, config *settings.Config, logger *zap.Logger) *AuthApp {
 	return &AuthApp{
 		userRepo: userRepo,
 		quizRepo: quizRepo,
-		logger:   logger}
+		config:   config,
+		logger:   logger,
+	}
 }
 
 // Login tries to log user in tying their sessionID to applicationID
@@ -38,7 +42,7 @@ func (app *AuthApp) Login(input marusia.RequestBody) (response marusia.Response,
 	_, err = app.GetUserIDBySessionID(input.Session.SessionID)
 	if err == nil { // user is already logged in
 		return marusia.Response{
-			Text:       []string{authModels.MsgAlreadyLoggedIn},
+			Text:       []string{app.config.Messages.MsgAlreadyLoggedIn},
 			EndSession: false,
 		}, false, nil
 	}
@@ -50,7 +54,7 @@ func (app *AuthApp) Login(input marusia.RequestBody) (response marusia.Response,
 	if err != nil {
 		if err == authModels.ErrUserNotFound { // User is not registered
 			return marusia.Response{
-				Text:       []string{authModels.MsgRegistrationPrompt},
+				Text:       []string{app.config.Messages.MsgRegistrationPrompt},
 				EndSession: false,
 			}, false, nil
 		}
@@ -63,7 +67,7 @@ func (app *AuthApp) Login(input marusia.RequestBody) (response marusia.Response,
 	}
 
 	return marusia.Response{
-		Text:       []string{fmt.Sprintf(authModels.MsgWelcome, user.Username)},
+		Text:       []string{fmt.Sprintf(app.config.Messages.MsgWelcomeAfterLogin, user.Username)},
 		EndSession: false,
 	}, true, nil
 }
@@ -80,7 +84,26 @@ func (app *AuthApp) Register(input marusia.RequestBody) (response marusia.Respon
 		return marusia.Response{}, false, err
 	}
 
-	return app.Login(input)
+	user, err := app.userRepo.GetUserByAppID(input.Session.Application.ApplicationID)
+	if err != nil {
+		if err == authModels.ErrUserNotFound { // User is not registered, this should not actually happen!
+			return marusia.Response{
+				Text:       []string{app.config.Messages.MsgRegistrationPrompt},
+				EndSession: false,
+			}, false, nil
+		}
+		return marusia.Response{}, false, err
+	}
+
+	err = app.userRepo.LoginUser(user.UserID, input.Session.SessionID)
+	if err != nil {
+		return marusia.Response{}, false, err
+	}
+
+	return marusia.Response{
+		Text:       []string{fmt.Sprintf(app.config.Messages.MsgWelcomeAfterRegistration, user.Username)},
+		EndSession: false,
+	}, true, nil
 }
 
 func (app *AuthApp) GetUserIDBySessionID(sessionID string) (userID uint64, err error) {
